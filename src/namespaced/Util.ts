@@ -21,7 +21,6 @@
  *   SOFTWARE.
  */
 
-
 /**
  * @file Util.ts
  * @description
@@ -32,6 +31,7 @@
 export namespace Util {
   export const levels = ['critical', 'error', 'warn', 'notice', 'info', 'http', 'verbose', 'debug',
     'silly', 'metadata'] as const;
+  type Levels = typeof levels extends readonly [...infer U] ? U : never;
   export function deepFreeze<T extends { [x: string]: T }>(object: T): Readonly<T> {
     Object.freeze(object);
     Object.getOwnPropertyNames(object).forEach((prop) => {
@@ -44,27 +44,13 @@ export namespace Util {
     });
     return object;
   }
-  export type DeepFreeze<T> = T extends (infer U)[]
-    ? DeepFreezeArray<U>
-    : T extends object
-    ? DeepFreezeObject<T>
-    : T;
+
   export interface RandomString<N extends number> extends String { readonly length: N };
   export const randomString = <N extends number>(length: N) => {
     const randomString = new String(Math.random().toString(36).substring(2, length + 2)) as RandomString<typeof length>;
     return randomString;
   }
-  export interface DeepFreezeArray<T> extends ReadonlyArray<DeepFreeze<T>> { }
 
-  export type DeepFreezeObject<T> = {
-    readonly [P in keyof T]: DeepFreeze<T[P]>;
-  };
-
-  export type DeepReadonly<T> = {
-    readonly [P in keyof T]: DeepReadonly<T[P]>;
-  };
-
-  export type DeepFreezeRecursive<T> = DeepReadonly<DeepFreeze<T>>;
   export function randomRealNumber() {
     return Math.floor(Math.random() * 10).toString() as '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9';
   }
@@ -81,9 +67,7 @@ export namespace Util {
       return null;
     }
   }
-  export type UnionFromArray<T> = Extract<T, Array<string>>[number] | Extract<T, string>;
-  export type ArrayUnion<T> = Extract<T, Array<string>>;
-  export type DevNote = <T extends string>(message: T extends string ? T : never) => void & typeof message;
+
   export const notify: DevNote = (message) => {
     // Log the message to the console as a note
     return (() => console.log(`%cNote:%c ${message}`, 'color: #D7B600; background-color: #48381F; padding: 2px 4px; border-radius: 4px; font-weight: bold;', 'color: #D7B600; font-weight: bold;'))() as void & typeof message;
@@ -100,14 +84,7 @@ export namespace Util {
   export function stringJoin<T extends any[][]>(...tuples: T): StringJoin<T> {
     return tuples.reduce((result, tuple) => [...result, ...tuple], []) as StringJoin<T>;
   }
-  export type MutableType<T> = {
-    [K in keyof T]: T[K] extends ReadonlyArray<infer U> ? [...U[]] : T[K] extends ReadonlyMap<infer K, infer V> ? Map<K, V> : T[K] extends ReadonlySet<infer V> ? Set<V> : T[K] extends object ? MutableType<T[K]> : T[K];
-  };
-  type ObjectOf<T, K extends keyof T> = { [key in K]: T[key] };
-  type ValueOf<T> = T[keyof T];
-  type ReturnArray<K extends keyof T, T> = <V extends T[K]>(ind: K) => [keys: K, values: V];
-  type CreateUnion<K extends keyof T, V extends T[K], T extends ObjectOf<T, K>> = (array: T) => <V extends T[keyof T]>(index: K) => [keys: K, values: V];
-  type IndexByType<T, K extends keyof T> = <V extends T[keyof T]>(ind: K) => [keys: K, values: V];
+
   export function createUnion<T>(object: T) {
     return (<V extends keyof T>(keys: V) => {
       //@ts-ignore
@@ -167,7 +144,8 @@ export namespace Util {
   }
   export function* mapKeysIterator<T, K>(map: Map<T, K>) {
     for (const key of map.keys()) {
-      if (map.has(key)) {``
+      if (map.has(key)) {
+        ``
         yield key;
       }
     }
@@ -197,6 +175,112 @@ export namespace Util {
         yield item;
       }
     }
+  }
+  export type ReverseLookup = typeof reverseLookup;
+  /**
+   * @function reverseLookup - Takes and inverts an object with an array of values.
+   * @type ReverseLookup
+   * @description Takes an object with an array of values and returns an object
+   *  with the values as keys and the keys as values. If a value is passed in,
+   *  it will return the key that matches the value.
+   * @param {O} o - An object with an array of values
+   * @param {Findable} selectedValue - An optional value to find in the object
+   * @returns {{ [Key in keyof O as Findable extends O[Key][number] ? Findable : never]:
+   * Key; } | keyof O} - An object with keys as values and values as keys
+   */
+  export function reverseLookup<
+    O extends { [K in keyof O]: [A, ...A[]] },
+    A extends O[keyof O] extends Array<infer U extends string> ? U : never,//[...(infer U extends string)[number][]] ? U : never,
+    Findable extends A
+  >(o: O, selectedValue?: Findable | undefined) {
+    const invObj = {} as { [Key in keyof O as Findable extends O[Key][number] ? Findable : never]: Key };
+    let returnVal = {} as unknown;
+    for (const key in o) {
+      if (o.hasOwnProperty(key)) {
+        const valuesArray = o[key];
+        for (const value of valuesArray) {
+          invObj[value as A & keyof typeof invObj] = key as unknown as typeof invObj[A & keyof typeof invObj];
+        }
+      }
+    }
+    let bool: ReturnType<typeof isString<typeof returnVal, O, A, typeof invObj>> | ReturnType<typeof isObject>;
+    const getValue = () => {
+      let isS: true | undefined; isS = typeof returnVal === 'string';
+      let isO: true | undefined; isO = typeof returnVal === 'object';
+      if (!selectedValue || selectedValue === undefined) {
+        bool = isObject<O, A, typeof invObj>(returnVal = invObj);
+      } else if (selectedValue && selectedValue !== undefined) {
+        if (selectedValue === undefined) return null as never;
+        for (let key of Object.keys(invObj)) {
+          if (key === selectedValue) {
+            returnVal = invObj[selectedValue as Findable & keyof typeof invObj];
+            isString<typeof returnVal, O, A, typeof invObj>(invObj, returnVal = invObj[selectedValue as Findable & keyof typeof invObj]);
+          }
+        }
+      }//@ts-ignore
+
+      if (isS) {
+        return returnVal;
+      } else if (isObject) {
+        return returnVal;
+      } else {
+        throw new Error('The return value is not a string or an object');
+      }
+    }
+    const value = getValue();
+    if (!value) return null as never;
+    return value;
+  }
+  function isString<
+    O extends { [K in keyof O]: [A, ...A[]] },
+    A extends O[keyof O] extends Array<infer U extends string> ? U : never,//[...(infer U extends string)[number][]] ? U : never,
+    I extends { [Key in keyof O as A extends O[Key][number] ? A : never]: Key; },
+    Value,
+  >(object: I, key?: Value): key is Value {
+    return object && typeof object !== 'object' && typeof object === 'string';
+  }
+  function isObject<
+    O extends { [K in keyof O]: [A, ...A[]] } = { [K in keyof object]: Array<string> },
+    A extends O[keyof O] extends Array<infer U extends string> ? U : never = O[keyof O] extends Array<infer U extends string> ? U : never,//[...(infer U extends string)[number][]] ? U : never,
+    I = { [Key in keyof O as A extends O[Key][number] ? A : never]: Key; },
+  >(object: I): object is I {
+    if (!object || object === null) return false;
+    if (typeof object !== 'object') return false;
+    if (!((Object.keys(object) as (keyof O)[]).every((key): key is keyof O => typeof key === 'string'))) return false;
+    if (!((Object.values(object) as O[keyof O][]).every((value): value is O[keyof O] => typeof value === 'string'))) return false;
+    return object as I && typeof object === 'object';
+  }
+  const val = reverseLookup({ a: ['c', 'val', 'cars'], b: ['d'] }, 'd');
+  /**
+   * @type CreateObject
+   * @description Creates an object from a tuple of key value pairs
+   * @param params - A tuple of key value pairs --- Should be an object passed in
+   * @returns An object with the keys and values from the tuple as a literal type
+   */
+  export type CreateObject = typeof createObject;
+  export type CustomObject<T extends { [K in keyof T]: T[K] }> = ReturnType<typeof createObject<T>>;
+  /**
+   * @function createObject<T>
+   * @type CreateObject
+   * @description Creates an object from a tuple of key value pairs
+   * @param {[T]} params - A tuple of key value pairs --- Should be an object passed in
+   * @returns An object with the keys and values from the tuple as a literal type
+   */
+  export function createObject<
+    T extends {
+      [K in keyof T]: T[K] extends Array<infer V extends string | number | symbol>//@ts-ignore
+      ? [...V extends T[K][number] ? V : never]
+      : T[K] extends infer F extends Function ? S
+      : T[K] extends object
+      ? { [Key in keyof T[K]]: T[K][Key] extends infer V extends string | number | symbol ? V : never }
+      : never
+    }
+  >(...params: [T]) {
+    let obj = {} as { [K in keyof T]: T[K] };
+    for (const [k, v] of Object.entries(params)) {//@ts-ignore
+      obj[k] = v;
+    }
+    return obj;
   }
 
   export function keyMapper<T>(object: T, type: 'keys' | 'values') {
@@ -233,17 +317,8 @@ export namespace Util {
     [K in keyof T]: [K, T[K]];
   }[keyof T];
 }
-
-export type MutableType<T> = Util.MutableType<T>;
-export type DeepFreezeRecursive<T> = Util.DeepFreezeRecursive<T>;
-export type DeepFreeze<T> = Util.DeepFreeze<T>;
-export type DeepReadonly<T> = Util.DeepReadonly<T>;
-export type UnionFromArray<T> = Util.UnionFromArray<T>;
-export type ArrayUnion<T> = Util.ArrayUnion<T>;
-export type DevNote = Util.DevNote;
 export type SimpleStringJoin<T extends string[]> = Util.SimpleStringJoin<T>;
 export type StringJoin<T extends any[][]> = Util.StringJoin<T>;
-export type Mutable<T> = Util.MutableType<T>;
 export type RandomString<N extends number> = Util.RandomString<N>;
 
 export const {
@@ -262,5 +337,7 @@ export const {
   notify,
   randomString,
   simpleStringJoin,
+  reverseLookup,
+  createObject, w
 } = Util;
 export default Util;
