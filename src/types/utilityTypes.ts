@@ -5,14 +5,15 @@
  * @copyright [Matthew Rackley's Github](https://www.github.com/matthewrackley "Matthew Rackley on github.com")
  */
 
-import { sep } from "path";
-
 export namespace Util {
   export type LiteralTypes = (string | number | symbol | boolean) |
-    [(string | number | symbol | boolean), ...( string | number | symbol | boolean)[]];
+  [(string | number | symbol | boolean), ...(string | number | symbol | boolean)[]];
+  export type LiteralStrings = (string | number | boolean | null);
+
   export interface StringLike<N extends String['length']> extends String {
     readonly length: N;
   };
+  var stringLike: StringLike<any>;
   export type DataType = 'User' | 'Zone' | 'Date' | 'RegExp' | 'Error' | 'Promise' | 'DataView' | 'Math' | 'JSON' | 'Promise';
   //@ts-ignore
   export type InverseMapping<T extends { [K in keyof T]: T[K] }> = { [Key in keyof T]: { [K in (T[Key][number] | T[Key]) as K extends string ? K : never]: Key } }[keyof T];
@@ -55,14 +56,14 @@ export namespace Util {
       LiteralTypes | // note: T[number] can be a string, symbol, number, or a tuple of the same
       (keyof T extends number
         ? T[Key] extends object ?
-          {
-            [K in keyof T[Key]]: T[Key][K] extends
-              ({ [K2 in keyof T[Key][K]]: T[Key][K][K2] } | LiteralTypes)
-              ? T[keyof T]
-            : never
-          }
+        {
+          [K in keyof T[Key]]: T[Key][K] extends
+          ({ [K2 in keyof T[Key][K]]: T[Key][K][K2] } | LiteralTypes)
+          ? T[keyof T]
+          : never
+        }
         : never
-      : never) | // note: T[number] can be a recursive object
+        : never) | // note: T[number] can be a recursive object
       {
         [K in keyof T as K extends number ? K : never]:
         T[K][keyof T[K]] extends LiteralTypes ? T[K][keyof T[K]] : never
@@ -72,7 +73,31 @@ export namespace Util {
     return [...args];
   };
 
-  const val = tupleizer('banjo', 'guitar', 'drums', ['bass', 'piano'], { 'saxophone': ['trumpet', 'banjo'], alphabet: { 'a': 'b', 'c': { a: 'alphabet', b: ['bang', 'bus']} } });
+  export type Interpolate<Segments extends any[]> = Segments extends [infer First, ...infer Rest]
+  ? First extends string
+    ? Rest extends string[]
+      ? `${First}${Interpolate<Rest>}`
+      : never
+    : never
+  : '';
+  export type InterpolateBySep<Segments extends any[], Separator extends string> = Segments extends [infer First, ...infer Rest]
+  ? First extends string
+    ? Rest extends any[]
+      ? `${First}${Rest['length'] extends 0 ? '' : Separator}${InterpolateBySep<Rest, Separator>}`
+      : never
+    : never
+  : '';
+  export type SeparatorInterpolation<
+    Values extends string[],
+    Separators extends string[],
+    Previous extends string = ''
+  > = Values extends [infer Current extends string, ...infer RemainingValues extends string[]]
+      ? Separators extends [infer CurrentSeparator extends string, ...infer RemainingSeparators extends string[]]
+        ? SeparatorInterpolation<RemainingValues, RemainingSeparators, `${Previous}${Current}${CurrentSeparator}`>
+      : `${Previous}${Current}`
+    : Previous;
+
+
   /**
    * @type {ArrayToString<A extends string[] | readonly string[], D extends string, P extends string = ''>} ArrayToString - Converts an array of strings to a string.
    * @param {A extends string[] | readonly string[]} A - The array to convert.
@@ -101,16 +126,16 @@ export namespace Util {
    * @param {A} [array] - The array to join.
    * @returns {ArrayToString<A, D>} The joined array.
    */
-  export type Join = <A extends string[] | readonly string[], D extends string>(array: A | [...A], seperator?: D) => ArrayToString<A, D>;
+  export type Join = <A extends string[] | readonly string[], D extends string | '' = ''>(array: A | [...A], seperator?: D) => ArrayToString<A, D>;
   /**
-   * @constant {Join} join - Joins an array of strings with a seperator, functionally can
+   * @constant {Join} joinArray - Joins an array of strings with a seperator, functionally can
    * replace the Array.prototype.join method.
    * @param {A | [...A]} [array] - The array to join.
    * @param {D | undefined} seperator - The seperator to join the array with.
-  */
-  export const join: Join = (array, seperator?) => {
-    let str = '' as string;
-    if (!seperator) seperator = '|' as typeof seperator;
+   */
+  export const joinArray: Join = function joinArray(array, seperator = '' as any)  {
+    let str = '' as any;
+    if (seperator === undefined) seperator = '' as typeof seperator;
     (array as NonNullable<typeof array>).forEach((value, index) => {
       if (index < (array as NonNullable<typeof array>).length) {
         str += value;
@@ -119,18 +144,23 @@ export namespace Util {
         str += seperator;
       }
     });
-    return str as ArrayToString<NonNullable<typeof array>, typeof seperator>;
+    return str as ArrayToString<typeof array, NonNullable<typeof seperator>>;
+  }
+  export type RemoveChar<S extends string, C extends string> = S extends `${infer F}${C}${infer R}` ? RemoveChar<`${F}${R}`, C> : S;
+  export type RemoveChars<S extends string[], C extends string> = {
+    [K in keyof S]: RemoveChar<S[K], C>;
+  };
+  export type RemoveCharacter = typeof removeChar;
+  export function removeChar<S extends string, C extends string>(str: S, char: C): RemoveChar<S, C> {
+    const val = split(str);
+    const arr = [...val].filter((c): c is typeof c => c !== char);
+    const newStr = join([...arr], '');
+    return newStr as RemoveChar<S, C>;
   }
 
-  const getInverseMapping = <T extends { [x: string]: T[keyof T] }>(obj: T) => {
-    return obj as InverseMapping<T>;
-  }
-  const getInverseObject = <
-    T extends { [x: string]: Array<T[keyof T][number]> },
-    K extends T[keyof T][number] = T[keyof T][number] extends infer U extends string ? U : never
-  >(obj: T) => {//@ts-ignore
-    return obj as InverseObject<T>;
-  }
+  // export const getInverseMapping = <T extends {}>(obj: T) => {
+  //   return obj as InverseMapping<T>;
+  //
   export type FilterNever<T> = {
     [K in keyof T as T[K] extends never ? never : K]: T[K];
   };
@@ -148,6 +178,9 @@ export namespace Util {
     ? never
     : T[K];
   };
+  export type CapitalizeStrings<T> = {
+    [K in keyof T]: string;
+  };
   export type MakeNormal<T> = T extends Readonly<T> | { readonly [x in any]: any }[keyof T] ? T | { -readonly [x in any]: any } : never;
   export type TypePlusParameter<Type, Param> = Type extends TypeParameter<Param> ? Type : never;
   export type TypeParameter<T> = T extends infer U ? U : never;
@@ -163,9 +196,12 @@ export namespace Util {
   }
   export const tupal = <T extends (number | string | symbol)[]>(...args: T) => args as T;
   export type MultiCase<T extends string> = Uppercase<T> | Lowercase<T>;
-  export type AlphaNumeric<T extends string> = T extends `${infer F}${infer R}`
+  export type AlphaNumeric<T extends string> = T extends `${infer F extends string}${infer R extends string}`
     ? (F extends AlphaNumericUnion ? `${F}${AlphaNumeric<R>}` : never)
     : T;
+  export function isAlphaNumeric<N extends string>(str: Util.AlphaNumeric<N>): str is Util.AlphaNumeric<N> {
+    return /[a-zA-Z0-9\-\_\.]+/.test(str)
+  }
   export type AlphaNumericUnion = Split<Alphabet>[number] | Split<'0123456789'>[number] | '.' | '-';
   export type Alphabet = MultiCase<'abcdefghijklmnopqrstuvwxyz'>;
   export type Split<S extends string> = ReturnType<typeof split<S>>;
@@ -204,17 +240,28 @@ export namespace Util {
       0: 1;
     };
   export type AddTen<T, Stop extends boolean = false> = AddTenHelper<Stop>[T extends keyof AddTenHelper<Stop> ? T : never];
-  export type AddOne<T> = AdditionHelper[T extends keyof AdditionHelper ? T : never];
-  export type AddOnePatch<T extends number> =
+  export type AddOneSm<T> = AdditionHelper[T extends keyof AdditionHelper ? T : never];
+  export type AddOne<T extends number> =
     T extends infer N extends number
-    ? `${N}` extends `${infer N1 extends number}${infer N2 extends number}${infer N3 extends number}`
-    ? `${AddTen<N1>}${AddTen<N2>}${AddTen<N3>}`
-    : N extends 99
-    ? 100
-    : `${N}` extends `${infer N1 extends 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9}${infer N2 extends 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8}`
-    ? `${AddTen<N1>}${AddTen<N2>}`
-    : AddTen<N>
+      ? `${N}` extends `${infer N3 extends 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8}`
+        ? `${AddTen<N3>}`
+      : `${N}` extends `${infer N3 extends 9}`
+        ? 10
+      : `${N}` extends `${infer N3 extends number}${infer N2 extends number}`
+        ? `${N3}${N2}` extends `${99}`
+          ? 100
+        : `${N2 extends 9 ? AddTen<N3> : N3}${AddTen<N2>}`
+      : `${N}` extends `${infer N3 extends number}${infer N2 extends number}${infer N1 extends number}`
+        ? `${N2 extends 9 ? AddTen<N3> : N3}${N1 extends 9 ? AddTen<N2> : N2}${AddTen<N1>}`
+      : never
     : never;
+    // : never;
+    //     ? `${}`
+    // : `${N}` extends `${infer N1 extends 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9}${infer N2 extends 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8}`
+    // ? `${AddTen<N1>}${AddTen<N2>}`
+    // : AddTen<N>
+    // : never;
+  type AA1 = AddOne<112>;
   export type HundredArray = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
     11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
     21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
@@ -244,26 +291,6 @@ export namespace Util {
   };
   export type Property<Obj extends {}> = keyof Obj;
   export type Tuple = Array<Tuple>;
-  // function checkProperty<
-  //   Obj extends SimpleObject<Obj, Property<Obj>>,
-  //   Value extends Obj[Property<Obj>],
-  //   Tuple extends [...Tuple[number][]]
-  // >(obj: Obj, property: Property<typeof obj> | [...Property<typeof obj>[]], values: Value | [...Value[]], tuple?: Tuple) {
-  //   if (Array.isArray(property)) {
-  //     const keys = Object.keys(obj);
-
-  //     if (keys.includes(obj[property as keyof Obj])) {
-  //       return obj[property as keyof Obj];
-  //     }
-  //   }
-  //   if (tuple) {
-  //     if (tuple.includes(obj[property])) {
-  //       return obj[property];
-  //     }
-  //   }
-  //   return obj[property];
-  // }
-
 
   // type CreateConcise<Obj extends { [x: string]: Obj[R extends keyof Obj ? R : keyof Obj] }, FromThis extends [...any], R extends keyof Obj | Obj[keyof Obj] = keyof Obj> = {
   //   [Prop in keyof Obj as HasProperty<Obj, Prop, FromThis[number]> extends never ? never : Prop]: HasProperty<Obj, Prop, FromThis[number]>;
@@ -293,7 +320,7 @@ export namespace Util {
   // type CountryTuple<R extends RegionCode> = Tuple<ExampleTuples<R>[number]>;
   export type TupleProperty<T extends [any, ...any[]]> = <V, N extends number>(index: N) => TupleHasProperty<V, T, typeof index>;
   export type TupleHasProperty<V, T extends [any, ...any[]], N extends number> = (tuple: T) => V extends T[number] ? T[V] : never;
-  function tupleHasProperty<T extends [...any[]]>(index: number): T[number] {
+  export function tupleHasProperty<T extends [...any[]]>(index: number): T[number] {
     return index as T[number];
   }
   export type Obj<T> = {
@@ -321,7 +348,7 @@ export namespace Util {
     ? DeepFreezeObject<T>
     : T;
 
-
+  export type Constructor<T = {}> = new (...args: any[]) => T;
   export type UnionFromArray<T> = Extract<T, Array<string>>[number] | Extract<T, string>;
   export type ArrayUnion<T> = Extract<T, Array<string>>;
   export type ObjectOf<T, K extends keyof T> = { [key in K]: T[key] };
@@ -330,4 +357,124 @@ export namespace Util {
   export type CreateUnion<K extends keyof T, V extends T[K], T extends ObjectOf<T, K>> = (array: T) => <V extends T[keyof T]>(index: K) => [keys: K, values: V];
   export type IndexByType<T, K extends keyof T> = <V extends T[keyof T]>(ind: K) => [keys: K, values: V];
 }
+
+
+import AddOne = Util.AddOne;
+import AddOneSm = Util.AddOneSm;
+import AddTen = Util.AddTen;
+import AddTenHelper = Util.AddTenHelper;
+import AdditionHelper = Util.AdditionHelper;
+import AlphaNumeric = Util.AlphaNumeric;
+import Alphabet = Util.Alphabet;
+import AlphaNumericUnion = Util.AlphaNumericUnion;
+import ArrayToString = Util.ArrayToString;
+import CapitalizeStrings = Util.CapitalizeStrings;
+import Concurrent = Util.Concurrent;
+import CreateUnion = Util.CreateUnion;
+import DeepFreeze = Util.DeepFreeze;
+import DeepFreezeArray = Util.DeepFreezeArray;
+import DeepFreezeObject = Util.DeepFreezeObject;
+import DeepFreezeRecursive = Util.DeepFreezeRecursive;
+import DeepReadonly = Util.DeepReadonly;
+import FilterNever = Util.FilterNever;
+import FilterNestedNever = Util.FilterNestedNever;
+import FilterNeverWithDepth = Util.FilterNeverWithDepth;
+import Interpolate = Util.Interpolate;
+import InterpolateBySep = Util.InterpolateBySep;
+import Join = Util.Join;
+import LowercaseArray = Util.LowercaseArray;
+import MakeNormal = Util.MakeNormal;
+import MultiCase = Util.MultiCase;
+import ObjectFromUnion = Util.ObjectFromUnion;
+import ObjectOf = Util.ObjectOf;
+import Opaque = Util.Opaque;
+import Property = Util.Property;
+import RemoveChar = Util.RemoveChar;
+import RemoveChars = Util.RemoveChars;
+import ReturnArray = Util.ReturnArray;
+import SeparatorInterpolation = Util.SeparatorInterpolation;
+import Split = Util.Split;
+import SplitString = Util.SplitString;
+import StringToArray = Util.StringToArray;
+import StringToNumber = Util.StringToNumber;
+import Subtract = Util.Subtract;
+import Tuple = Util.Tuple;
+import TupleProperty = Util.TupleProperty;
+import TupleHasProperty = Util.TupleHasProperty;
+import TypeParameter = Util.TypeParameter;
+import TypePlusParameter = Util.TypePlusParameter;
+import UnionFromArray = Util.UnionFromArray;
+import ValueOf = Util.ValueOf;
+import RecursiveArray = Util.RecursiveArray;
+import RecursiveObject = Util.RecursiveObject;
+import joinArray = Util.joinArray;
+import split = Util.split;
+import tupal = Util.tupal;
+import makeTuple = Util.makeTuple;
+import tupleHasProperty = Util.tupleHasProperty;
+import isAlphaNumeric = Util.isAlphaNumeric;
+import removeChar = Util.removeChar;
+import getInverseMapping = Util.getInverseMapping;
+
+export type {
+  AddOne,
+  AddOneSm,
+  AddTen,
+  AddTenHelper,
+  AdditionHelper,
+  AlphaNumeric,
+  Alphabet,
+  AlphaNumericUnion,
+  ArrayToString,
+  CapitalizeStrings,
+  Concurrent,
+  CreateUnion,
+  DeepFreeze,
+  DeepFreezeArray,
+  DeepFreezeObject,
+  DeepFreezeRecursive,
+  DeepReadonly,
+  FilterNever,
+  FilterNestedNever,
+  FilterNeverWithDepth,
+  Interpolate,
+  InterpolateBySep,
+  Join,
+  LowercaseArray,
+  MakeNormal,
+  MultiCase,
+  ObjectFromUnion,
+  ObjectOf,
+  Opaque,
+  Property,
+  RemoveChar,
+  RemoveChars,
+  ReturnArray,
+  SeparatorInterpolation,
+  Split,
+  SplitString,
+  StringToArray,
+  StringToNumber,
+  Subtract,
+  Tuple,
+  TupleProperty,
+  TupleHasProperty,
+  TypeParameter,
+  TypePlusParameter,
+  UnionFromArray,
+  ValueOf,
+  RecursiveArray,
+  RecursiveObject
+};
+export {
+  getInverseMapping,
+  isAlphaNumeric,
+  joinArray,
+  makeTuple,
+  removeChar,
+  split,
+  tupal,
+  tupleHasProperty,
+}
+
 export default Util;

@@ -6,137 +6,52 @@
  */
 
 import { SemVer as SemverClass } from 'semver';
-import Util from '../types/utilityTypes'
+import { AddOne, AlphaNumeric, ArrayToString, joinArray } from '../types/utilityTypes';
+import exp from 'constants';
 export type ExperimentType = 'alpha' | 'beta' | 'rc' | 'build';
 export type ReleaseType = "production" | "staging" | "development";
-export type Comparators = "===" | "!==" | "=" | "==" | "!=" | ">" | ">=" | "<" | "<=" | "\^" | "~" | "v";
-
-
-function createVersion(v: Vers): Version {
-  return v as Version;
-}
-type VersionHolder<V extends Version> = V extends `${infer C extends Comparators | ''}${infer V1 extends number}.${infer V2 extends number}.${infer V3 extends number}` | `${infer C extends Comparators | ''}${infer V1 extends number}.${infer V2 extends number}.${infer V3 extends number}-${infer S extends ExperimentType}.${infer N extends number}` | `${infer C extends Comparators | ''}${infer V1 extends number}.${infer V2 extends number}.${infer V3 extends number}-${infer S extends ExperimentType}` ? `${C}${V1}.${V2}.${V3}` | `${C}${V1}.${V2}.${V3}-${S}` | `${C}${V1}.${V2}.${V3}-${S}.${N}` : null;
-type Numeral = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;//R extends null ? TruncatedVersion<IncludeComp> : ExtendedVersion<R extends ExperimentType ? R : never, N, IncludeComp>;
+export type Comparators = "===" | "!==" | "=" | "==" | "!=" | "\>" | "\>=" | "\<" | "\<=" | "\^" | "~" | "v";
 
 /**
  * Represents a Version number that aligns with the SemVer specification.
- * @type {Version} Version
+ * @type {VersionPattern} VersionPattern
  */
-export type Version = `${number}.${number}.${number}`
-type Experiment<E> = E extends `${infer X extends string}.${infer N extends number}` ? `${X}.${N}` : E extends ExperimentType ? E : never;
-
-type ExpVer = `${ExperimentType}.${number}`;
-type Metadata<T> = T extends infer S extends string ? Util.AlphaNumeric<S> : never;
-type v1 = Experiment<'alpha'>;
-type VersionExp<V extends Version, E extends ExpVer | ExperimentType | undefined = undefined, M extends string | undefined = undefined> =
-  V extends Version
-    ? E extends `${infer X extends string}.${infer N extends number}`
-      ? M extends string
-        ? `${V}-${Experiment<`${X}.${N}`>}+${Metadata<M>}`
-      : `${V}-${Experiment<`${X}.${N}`>}`
-    : E extends ExperimentType
-      ? M extends string
-        ? `${V}-${Experiment<E>}+${Metadata<M>}`
-      : `${V}-${Experiment<E>}`
-    : V
-  : never;
-//type VersionExpNum<V extends Version, E extends ExpVer> = E extends `${infer X extends string}.${infer N extends number}` ? `${V}-${Experiment<E>}.${N}` : never;
-type VersionMeta<V extends Version, M extends string | undefined = undefined, E extends ExpVer | ExperimentType | undefined = undefined> =
-  V extends Version
-    ? M extends string
-      ? E extends ExpVer | ExperimentType
-        ? E extends `${infer X extends ExperimentType}.${infer N extends number}`
-          ? `${V}-${Experiment<`${X}.${N}`>}+${Metadata<M>}`
-        : `${V}-${Experiment<E>}+${Metadata<M>}`
-      : `${V}+${Metadata<M>}`
-    : V
-  : never;
-type VersionBoth<V extends Version, E extends ExpVer | ExperimentType | undefined = undefined, M extends string | undefined = undefined> =
-  V extends Version
-    ? E extends ExpVer | ExperimentType
-      ? M extends string
-        ? E extends `${infer X extends ExperimentType}.${infer N extends number}`
-          ? `${V}-${Experiment<`${X}.${N}`>}+${Metadata<M>}`
-        : `${V}-${Experiment<E>}+${Metadata<M>}`
-      : `${V}-${Experiment<E>}`
-    : V
-  : never;
-type FullyVersioned<V extends Version, E extends ExpVer | ExperimentType | undefined = undefined, M extends string | undefined = undefined> = (E extends `${infer X extends string | ExperimentType}.${infer N extends number}` ? `${V}-${Experiment<`${X}.${N}`>}+${Metadata<M>}` : E extends ExperimentType ? `${V}-${Experiment<E>}+${Metadata<M>}` : never) | `${V}-${Experiment<E>}` | `${V}+${Metadata<M>}` | V;
-type VersionAll<V extends Version, E extends ExpVer | ExperimentType | undefined = undefined, M extends string | undefined = undefined> =
-  V extends Version
-    ? E extends `${infer X extends ExperimentType}.${infer N extends number}` | ExperimentType | undefined
-      ? E extends `${X}.${N}`
-        ? M extends string
-          ? VersionBoth<V, `${X}.${N}`, M>
-        : VersionExp<V, `${X}.${N}`>
-      : E extends ExperimentType
-        ? M extends string
-          ? VersionBoth<V, E, M>
-        : VersionExp<V, E>
-      : undefined
-    : M extends string
-      ? VersionMeta<V, M>
-    : V
-  : never;
-type A = VersionAll<'1.0.0', 'alpha.1', 'test'>;
-  //       : `${X}${N}` extends ExperimentType
-  //         ? VersionBoth<V, `${X}${N}`, M>
-  //       : `${X}${N}` extends ExpVer
-  //       ? VersionExpNum<V, `${X}${N}`>
-  //     : `${X}${N}` extends ExperimentType
-  //       ? VersionExp<V, `${X}${N}`>
-  //     : V
-  //   : E extends undefined
-  //     ? M extends string
-  //       ? VersionMeta<V, M>
-  //     : V
-  //   : V
-  // : never;
-
+type VersionPattern = `${VersionNumber}`
+  | `${VersionNumber}-${ExperimentType}`
+  | `${VersionNumber}-${ExperimentWithVersion}`
+  | `${VersionNumber}+${AlphaNumeric<string>}`
+  | `${VersionNumber}-${ExperimentType}+${AlphaNumeric<string>}`
+  | `${VersionNumber}-${ExperimentWithVersion}+${AlphaNumeric<string>}`;
+/**
+ * Represents the base for a SemVer Version that aligns with the SemVer specification.
+ */
+export type VersionNumber = `${number}.${number}.${number}`
+type ExperimentWithVersion = `${ExperimentType}\.${number}`;
 
 interface RegExpInterface<A extends string[] | readonly string[], N extends string | null, O extends 'comparator' | 'release' = 'release'> {
   name: N | null;
   array: A;
-  regex: `(${this['name'] extends null ? '' : `?<${N}>`}${Util.ArrayToString<A, '|'>})${O extends 'comparator' ? '?' : ''}`
+  regex: `(${this['name'] extends null ? '' : `?<${N}>`}${ArrayToString<A, '|'>})${O extends 'comparator' ? '?' : ''}`
   update<V extends [...V[] extends string[] ? V[] : string[]], L extends string>(value: { array: V, name: L }): RegExpInterface<V, L, O>;
 }
-type StringToArray<S extends string, D extends string> =
-  S extends '' ? [] :
-  S extends `${infer F}${D}${infer R}` ? [F, ...StringToArray<R, D>] :
-  [S];
 
-
-function split<S extends string, D extends string = ''>(stringToSplit: S, separator: D = '' as D): StringToArray<S, D> {
-  return stringToSplit.split(separator) as any;
-};
-type CapitalizeStrings<T> = {
-  [K in keyof T]: string;
-};
 interface GenerateInterface {
-  <A extends [...A[] extends string[] | readonly string[] ? A[] : string[] | readonly string[]], N extends string | null = null, O extends 'comparator' | 'release' = 'release'>(array: A | [...A], name?: N, optionalRegex?: O): RegExpInterface<A, N, O>;
+  <A extends [...A[] extends string[] ? A[] : string[]], N extends string | null = null, O extends 'comparator' | 'release' = 'release'>(array: A | [...A], name?: N, optionalRegex?: O): RegExpInterface<A, N, O>;
 };
 
-const join: Util.Join = (array, seperator) => {
-  let str = '' as any;
-  if (!seperator) seperator = '|' as typeof seperator;
-  for (let i = 0; i < (array as typeof array).length; i++) {
-    str += (array as typeof array)[i];
-    if (i < (array as typeof array).length - 1) {
-      str += seperator;
-    }
-  }
-  return str as Util.ArrayToString<typeof array, NonNullable<typeof seperator>>;
-}//@ts-ignore
-const generateInterface: GenerateInterface = <A extends [...A[] extends string[] | readonly string[] ? A[] : string[] | readonly string[]], N extends string | null, O extends 'comparator' | 'release' = 'release'>(array: A | [...A], name: N = null as N, optionalRegex: O = 'release' as O) => {
+//@ts-ignore
+const generateInterface: GenerateInterface = function generateInterface<A extends [...A[] extends string[] ? A[] : string[]],
+  N extends string | null,
+  O extends 'comparator' | 'release' = 'release'>(array: A | [...A], name: N = null as N, optionalRegex: O = 'release' as O) {
   var obj = {} as RegExpInterface<A, N, O>;
   obj.name = name as N;
   obj.array = array as A;
-  obj.regex = `(${name === null ? '' : '?<' + name + '>'}${join(obj.array, '|',)})${optionalRegex === 'comparator' ? '?' : ''}` as unknown as `(${typeof name extends null ? '' : `?<${typeof name}>`}${Util.ArrayToString<[...typeof array], '|'>})${typeof optionalRegex extends 'comparator' ? '?' : ''}`;
+  obj.regex = `(${name === null ? '' : '?<' + name + '>'}${joinArray(obj.array, '|')})${optionalRegex === 'comparator' ? '?' : ''}` as unknown as `(${typeof name extends null ? '' : `?<${typeof name}>`}${ArrayToString<[...typeof array], '|'>})${typeof optionalRegex extends 'comparator' ? '?' : ''}`;
   obj.update = (<V extends [...V[] extends string[] ? V[] : string[]], L extends string>(value: { array: V | A, name: L | N }): RegExpInterface<V, L, O> => {
     if (value.name && value.array) {
       return generateInterface(value.array as V, value.name as L, optionalRegex) as RegExpInterface<V, L, O>;
     } else if (value.name && !value.array) {
-      value.array = obj.array;
+      value.array = obj.array;//@ts-ignore
       return generateInterface(value.array, value.name, optionalRegex) as RegExpInterface<V, L, O>;
     } else if (value.array && !value.name) {
       value.name = obj.name as N;
@@ -146,66 +61,156 @@ const generateInterface: GenerateInterface = <A extends [...A[] extends string[]
     }
   }) as RegExpInterface<A, N, O>['update']; //@ts-ignore
   return obj;
-};
-// type VersionUpdssate<V> = <N extends Version, T extends 'major' | 'minor' | 'patch' | 'experiment' | N, R extends ExperimentType>(newVersion: T) => T extends N ? SemVer<T> : V extends Version ? T extends 'major' ? SemVer<NewVersion<V, 'major'>> : T extends 'minor' ? SemVer<NewVersion<V, 'minor'>> : T extends 'patch' ? SemVer<NewVersion<V,'patch'>> : T extends 'experiment' ? SemVer<NewVersion<V,'experiment'>> : never : never;
-// ;
+}
 
+export type InferVersion<V extends VersionPattern> =
+  V extends `${infer V1 extends number}.${infer V2 extends number}.${infer V3 extends number}${infer Rest}`
+    ? `${V1}.${V2}.${V3}`
+  : never;
+export type Major<V extends VersionPattern> = V extends `${infer V1 extends number}.${number}.${number}${infer Rest}` ? V1 : never;
+export type Minor<V extends VersionPattern> = V extends `${number}.${infer V2 extends number}.${number}${infer Rest}` ? V2 : never;
+export type Patch<V extends VersionPattern> = V extends `${number}.${number}.${infer V3 extends number}${infer Rest}` ? V3 : never;
+export type Experiment<V extends VersionPattern> = V extends `${infer _Prefix}-${infer PreReleasePart}+${infer _Suffix}`
+  ? PreReleasePart
+  : V extends `${infer _Prefix}-${infer PreReleasePart}`
+  ? PreReleasePart
+  : never;
+export type ExperimentName<E extends Experiment<VersionPattern>> = E extends `${infer Name}.${infer VNumber}`
+  ? Name
+  : E extends ExperimentType
+  ? E
+  : never;
+export type ExperimentVersion<E extends Experiment<VersionPattern>> = E extends `${infer Name}.${infer VNumber extends number}`
+  ? VNumber
+  : never;
+export type Metadata<V extends VersionPattern> = V extends `${infer _Prefix}+${infer Meta}`
+  ? AlphaNumeric<Meta>
+  : never;
 
-// type NewVersion<V extends Version, T extends 'major' | 'minor' | 'patch' | 'experiment'> =
-//     V extends `${infer C extends Comparators | ''}${infer V1 extends number}.${infer V2 extends number}.${infer V3 extends number}${infer L extends infer X extends '-rc' | '-build' | '-alpha' | '-beta' | '' ? X : never}` | `${infer C extends Comparators | ''}${infer V1 extends number}.${infer V2 extends number}.${infer V3 extends number}${infer L extends '-rc' | '-build' | '-alpha' | '-beta' | ''}.${infer V4 extends 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | ''}`
-//     ? T extends 'major'
-//       ? L extends ''
-//         ? `${C}${AddOne<V1>}.${V2}.${V3}`
-//       : V4 extends ''
-//         ? `${C}${AddOne<V1>}.${V2}.${V3}${L}`
-//       : `${C}${AddOne<V1>}.${V2}.${V3}${L}.${V4}`
-//     : T extends 'minor'
-//       ? L extends ''
-//         ? `${C}${V1}.${AddOne<V2>}.${V3}`
-//       : V4 extends ''
-//         ? `${C}${V1}.${AddOne<V2>}.${V3}${L}`
-//       : `${C}${V1}.${AddOne<V2>}.${V3}${L}.${V4}`
-//     : T extends 'patch'
-//       ? L extends ''
-//         ? `${C}${V1}.${V2}.${AddOne<V3>}`
-//       : V4 extends ''
-//         ? `${C}${V1}.${V2}.${AddOne<V3>}${L}`
-//       : `${C}${V1}.${V2}.${AddOne<V3>}${L}.${V4}`
-//     : T extends 'experiment'
-//       ? L extends `-${ExperimentType}`
-//         ? V4 extends ''
-//           ? `${C}${V1}.${V2}.${V3}${L}.1`
-//         : V4 extends 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
-//           ? `${C}${V1}.${V2}.${V3}${L}.${AddOne<V4>}`
-//         : V4 extends 9
-//           ? L extends '-rc'
-//             ? `${C}${V1}.${V2}.${V3}-build`
-//           : L extends '-build'
-//             ? `${C}${V1}.${V2}.${V3}-alpha`
-//           : L extends '-alpha'
-//             ? `${C}${V1}.${V2}.${V3}-beta`ssssss
-//           : L extends '-beta'
-//             ? `${C}0.0.0`
-//           : never
-//         : never
-//       : never
-//     : never
+// type MajorUpdate<V extends VersionPattern> =
+//   Experiment<V> extends never
+//   ? AlphaNumeric<Metadata<V>> extends never
+//   ? `${AddOne<Major<V>>}.0.0`
+//   : `${AddOne<Major<V>>}.0.0-${AlphaNumeric<Metadata<V>>}`
+//   : AlphaNumeric<Metadata<V>> extends never
+//   ? `${AddOne<Major<V>>}.0.0-${Experiment<V>}`
+//   : `${AddOne<Major<V>>}.0.0-${Experiment<V>}+${AlphaNumeric<Metadata<V>>}`;
+// type MinorUpdate<V extends VersionPattern> =
+//   Experiment<V> extends never
+//   ? AlphaNumeric<Metadata<V>> extends never
+//   ? `${Major<V>}.${AddOne<Minor<V>>}.0`
+//   : `${Major<V>}.${AddOne<Minor<V>>}.0-${AlphaNumeric<Metadata<V>>}`
+//   : AlphaNumeric<Metadata<V>> extends never
+//   ? `${Major<V>}.${AddOne<Minor<V>>}.0-${Experiment<V>}`
+//   : `${Major<V>}.${AddOne<Minor<V>>}.0-${Experiment<V>}+${AlphaNumeric<Metadata<V>>}`;
+// type PatchUpdate<V extends VersionPattern> =
+//   Experiment<V> extends never
+//   ? AlphaNumeric<Metadata<V>> extends never
+//   ? `${Major<V>}.${Minor<V>}.${AddOne<Patch<V>>}`
+//   : `${Major<V>}.${Minor<V>}.${AddOne<Patch<V>>}-${AlphaNumeric<Metadata<V>>}`
+//   : AlphaNumeric<Metadata<V>> extends never
+//   ? `${Major<V>}.${Minor<V>}.${AddOne<Patch<V>>}-${Experiment<V>}`
+//   : `${Major<V>}.${Minor<V>}.${AddOne<Patch<V>>}-${Experiment<V>}+${AlphaNumeric<Metadata<V>>}`;
+// type ExperimentUpdate<V extends VersionPattern> =
+//   ExperimentVersion<Experiment<V>> extends never
+//   ? AlphaNumeric<Metadata<V>> extends never
+//   ? `${InferVersion<V>}-${ExperimentName<Experiment<V>>}.1`
+//   : `${InferVersion<V>}-${ExperimentName<Experiment<V>>}.1+${AlphaNumeric<Metadata<V>>}`
+//   : ExperimentVersion<Experiment<V>> extends 9
+//   ? AlphaNumeric<Metadata<V>> extends never
+//   ? ExperimentName<Experiment<V>> extends 'rc'
+//   ? `${InferVersion<V>}-build`
+//   : ExperimentName<Experiment<V>> extends 'build'
+//   ? `${InferVersion<V>}-alpha`
+//   : ExperimentName<Experiment<V>> extends 'alpha'
+//   ? `${InferVersion<V>}-beta`
+//   : ExperimentName<Experiment<V>> extends 'beta'
+//   ? `${InferVersion<V>}`
+//   : never
+//   : ExperimentName<Experiment<V>> extends 'rc'
+//   ? `${InferVersion<V>}-build+${AlphaNumeric<Metadata<V>>}`
+//   : ExperimentName<Experiment<V>> extends 'build'
+//   ? `${InferVersion<V>}-alpha+${AlphaNumeric<Metadata<V>>}`
+//   : ExperimentName<Experiment<V>> extends 'alpha'
+//   ? `${InferVersion<V>}-beta+${AlphaNumeric<Metadata<V>>}`
+//   : ExperimentName<Experiment<V>> extends 'beta'
+//   ? `${InferVersion<V>}+${AlphaNumeric<Metadata<V>>}`
+//   : ''
+//   : AlphaNumeric<Metadata<V>> extends never
+//   ? `${InferVersion<V>}-${ExperimentName<Experiment<V>>}.${AddOne<ExperimentVersion<Experiment<V>>>}`
+//   : `${InferVersion<V>}-${ExperimentName<Experiment<V>>}.${AddOne<ExperimentVersion<Experiment<V>>>}+${AlphaNumeric<Metadata<V>>}`;
+// type VersionUpdate<V extends VersionPattern, UT extends UpdateType> =
+//   UT extends 'major'
+//   ? MajorUpdate<V>
+//   : UT extends 'minor'
+//   ? MinorUpdate<V>
+//   : UT extends 'patch'
+//   ? PatchUpdate<V>
+//   : UT extends 'experiment'
+//   ? ExperimentUpdate<V>
 //   : never;
+type ExperimentNameUpdate<V extends VersionPattern, UT extends 'major' | 'minor' | 'patch' | 'experiment'> =
+  UT extends 'experiment'
+    ? ExperimentVersion<Experiment<V>> extends never
+      ? `-${ExperimentName<Experiment<V>>}`
+    : ExperimentVersion<Experiment<V>> extends 9
+      ? ExperimentName<Experiment<V>> extends 'rc'
+        ? '-build'
+      : ExperimentName<Experiment<V>> extends 'build'
+        ? '-alpha'
+      : ExperimentName<Experiment<V>> extends 'alpha'
+        ? '-beta'
+      : ExperimentName<Experiment<V>> extends 'beta'
+        ? ''
+      : never
+    : ExperimentVersion<Experiment<V>> extends 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
+      ? `-${ExperimentName<Experiment<V>>}`
+    : never
+  : ExperimentName<Experiment<V>> extends never
+    ? ''
+  : `-${ExperimentName<Experiment<V>>}`;
+type ExperimentVersionUpdate<V extends VersionPattern, UT extends 'major' | 'minor' | 'patch' | 'experiment'> =
+  UT extends 'experiment'
+  ? ExperimentVersion<Experiment<V>> extends never
+  ? '.1'
+  : ExperimentVersion<Experiment<V>> extends 9
+  ? ''
+  : ExperimentVersion<Experiment<V>> extends 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
+  ? `.${AddOne<ExperimentVersion<Experiment<V>>>}`
+  : never
+  : `.${ExperimentVersion<Experiment<V>>}`;
+type MMPUpdate<V extends VersionPattern, UT extends 'major' | 'minor' | 'patch' | 'experiment' = 'experiment'> =
+  UT extends 'major'
+  ? `${AddOne<Major<V>>}.0.0`
+  : UT extends 'minor'
+  ? `${Major<V>}.${AddOne<Minor<V>>}.0`
+  : UT extends 'patch'
+  ? `${Major<V>}.${Minor<V>}.${AddOne<Patch<V>>}`
+  : UT extends 'experiment'
+  ? InferVersion<V>
+  : never;
+type DisplayVersion<V extends VersionPattern, X extends [versionOp: X[0], wildcard: X[1], experimnent: X[2], metadata: X[3]]> = `${X[0] extends true ? 'v' : ''}${Major<V>}.${Minor<V>}.${X[1] extends true ? 'x' : Patch<V>}${X[2] extends true ? `-${Experiment<V>}` : ''}${X[3] extends true ? `+${AlphaNumeric<Metadata<V>>}` : ''}`;
+type NewVersion<V extends VersionPattern, T extends UpdateType> = `${MMPUpdate<V, T>}${ExperimentNameUpdate<V, T>}${ExperimentVersionUpdate<V, T>}${AlphaNumeric<Metadata<V>> extends string ? `+${AlphaNumeric<Metadata<V>>}` : ''}` extends infer VP extends VersionPattern ? VP : never;
 
 const comparator = ["===", "!==", "=", "==", "!=", ">", ">=", "<", "<=", "\^", "~", "v", ""] as const;
 const release = ['alpha', 'beta', 'rc', 'build'] as const;
-const comparators = generateInterface(["===", "!==", "=", "==", "!=", ">", ">=", "<", "<=", "\^", "~", "v", ""], 'comparator', 'comparator').regex;
-const releases = generateInterface(['alpha', 'beta', 'rc', 'build'], 'expName').regex;
-interface SemVerMatchGroup<V extends Version, E extends ExpVer | ExperimentType | undefined = undefined, M extends string | undefined = undefined> extends CompRel {
-  experiment?: E extends string ? Experiment<E> : never;
-  expName?: E extends `${infer X extends string}.${infer N}` ? X : E extends string ? Experiment<E> : never;
-  expVers?: E extends `${infer X}.${infer N extends number}` ? N : never;
-  metadata?: M extends string ? Metadata<M> : never;
+var comparators = generateInterface(["===", "!==", "=", "==", "!=", ">", ">=", "<", "<=", "\^", "~", "v", ""], 'comparator', 'comparator').regex;
+var releases = generateInterface(['alpha', 'beta', 'rc', 'build'], 'expName').regex;
+interface SemVerMatchGroup<V extends VersionPattern> extends CompRel {
+  experiment?: Experiment<V>;
+  expName?: ExperimentName<Experiment<V>>;
+  expVers?: ExperimentVersion<Experiment<V>>;
+  metadata?: AlphaNumeric<Metadata<V>>;
   comparator?: Comparators;
-  major: V extends `${infer V1 extends number}.${number}.${number}` ? V1 : never;
-  minor: V extends `${number}.${infer V2 extends number}.${number}` ? V2 : never;
-  patch: V extends `${number}.${number}.${infer V3 extends number}` ? V3 : never;
-  mmp: V;
+  major: Major<V>;
+  minor: Minor<V>;
+  patch: Patch<V>;
+  mmp: InferVersion<V>;
+}
+type UpdateType = 'major' | 'minor' | 'patch' | 'experiment';
+
+interface Matches<V extends VersionPattern> {
+  matches: SemVerMatchGroup<V>;
 }
 type CompRel = {
   [compName: string]: typeof SemVer.comparators;
@@ -213,33 +218,84 @@ type CompRel = {
   [relName: string]: typeof SemVer.releases;
 }
 //const { groups: { comparator, version, major, minor, patch, release, expVersion } } = SemVer.regex.exec(this.version) as unknown as { groups: SemVerMatchGroup };
-const isExperimental = <R extends ExperimentType, V extends Version>(version: R): version is R => {
-  return release.every((r): r is R => r === version)
-}
-const isComparator = <C extends Comparators>(comp: C): comp is C => {
-  return comparator.every((c): c is C => c === comp);
-}
-const isNumber = <N extends `${number}`>(number: N): number is N => {
-  const array = [...Array(999).keys()] as unknown as `${number}`[];
-  return array.every((n): n is N => n == number);
-}
-const isVersion = <V extends Version>(version: V): version is V => {
-  return SemVer.regex.test(version);
-}
-const isProduction = <V extends Version>(version: V | 'production'): version is 'production' => {
-  if (version === 'production') return true;
-  return new SemVer(version as V).major >= 1;
-}
-interface DisplayOptions<E extends ExpVer | ExperimentType | undefined = undefined, M extends string | undefined = undefined> {
+
+interface DisplayOptions<V extends VersionPattern> {
   comparator?: Comparators;
-  metadata?: M extends string ? Metadata<M> : never;
-  experiment?: E extends string ? Experiment<E> : never;
-  includeMetadata?: boolean;
-  patchWildcard?: boolean;
-  versionOperator?: boolean;
-  includePrerelease?: boolean;
+  metadata?: AlphaNumeric<Metadata<V>>;
+  experiment?: Experiment<V>;
+  includeMetadata?: true | undefined;
+  patchWildcard?: true | undefined;
+  versionOperator?: true | undefined;
+  includePrerelease?: true | undefined;
 }
-export class SemVer<V extends Version, E extends ExpVer | ExperimentType | undefined = undefined, M extends string | undefined = undefined> extends SemverClass implements SemVerMatchGroup<V,E,M> {
+function versionUpdate<V extends VersionPattern, T extends UpdateType>(oldVersion: V, type: T, options?: DisplayOptions<NewVersion<V, T> extends infer VP extends VersionPattern ? VP : never>): SemVer<NewVersion<V, T> extends infer VP extends VersionPattern ? VP : never> {
+  const regex = new RegExp(`^${comparators}(?<mmp>(?<major>[0-9]+)\\.(?<minor>[0-9]{1,2})\\.(?<patch>[0-9]{1,3}|x))(?:-(?<experiment>${releases}(?:\\.(?<expVers>[0-9]{1}))?(?:\\+(?<metadata>[a-zA-Z0-9\\-\\.]+))?))?`, 'm');
+  const { major, minor, patch, mmp, expName, expVers, metadata } = regex.exec(oldVersion)?.groups! as SemVerMatchGroup<V>;
+  var newExpName: ExperimentNameUpdate<V, T>,
+    newExpVers: ExperimentVersionUpdate<V, T>,
+    newExperiment: `${ExperimentNameUpdate<V, T>}${ExperimentVersionUpdate<V, T>}`,
+    newMetadata: AlphaNumeric<Metadata<V>> extends string ? `+${AlphaNumeric<Metadata<V>>}` : '',
+    newMMP: MMPUpdate<V, T>;
+  newMetadata = (metadata ? `+${metadata}` as const : '' as const) as AlphaNumeric<Metadata<V>> extends string ? `+${AlphaNumeric<Metadata<V>>}` : '';
+  newExpName = (expName ? `-${expName}` : '') as ExperimentNameUpdate<V, T>;
+  newExpVers = (expVers ? `.${expVers}` : '') as ExperimentVersionUpdate<V, T>;
+  newExperiment = `${newExpName}${newExpVers}` as const;
+  newMMP = mmp as MMPUpdate<V, T>;
+  switch (type) {
+    case 'major':
+      newMMP = `${Number(major) + 1 as Major<NewVersion<V, T>>}.0.0` as MMPUpdate<V, T>;
+      break;
+    case 'minor':
+      newMMP = `${major as Major<V>}.${Number(minor) + 1 as Minor<NewVersion<V, T>> }.0` as MMPUpdate<V, T>;
+      break;
+    case 'patch':
+      newMMP = `${major as Major<V>}.${minor as Minor<V>}.${Number(patch) + 1 as Patch<NewVersion<V, T>>}` as MMPUpdate<V, T>;
+      break;
+    case 'experiment':
+      switch (Number(expVers)) {//@ts-ignore
+        case 9:
+          switch (expName) {
+            case 'rc':
+              newExpName = '-build' as ExperimentNameUpdate<V, T>;
+              break;
+            case 'build':
+              newExpName = '-alpha' as ExperimentNameUpdate<V, T>;
+              break;
+            case 'alpha':
+              newExpName = '-beta' as ExperimentNameUpdate<V, T>;
+              break;
+            case 'beta':
+              newExpName = '' as ExperimentNameUpdate<V, T>;
+              break;
+          }
+          newExpVers = '' as ExperimentVersionUpdate<V, T>;
+          break;//@ts-ignore
+        case 1:
+        case 2:
+        case 3:
+        case 4:
+        case 5:
+          console.log('hit 5');
+        case 6:
+        case 7:
+        case 8:
+          console.log('hit 8')
+          newExpName = `-${expName}` as ExperimentNameUpdate<V, T>;
+          newExpVers = `.${Number(expVers)! + 1}` as ExperimentVersionUpdate<V, T>;
+          break;
+        case undefined:
+          newExpName = `-${expName}` as ExperimentNameUpdate<V, T>;
+          newExpVers = '.1' as ExperimentVersionUpdate<V, T>;
+          break;
+      }
+      newExperiment = `${newExpName}${newExpVers}` as const;
+      break;
+  }
+  const update = `${newMMP}${newExperiment}${newMetadata}` as const;
+  return new SemVer(update as NewVersion<V, T> extends infer VP extends VersionPattern ? VP : never, options);
+}
+
+export class SemVer<V extends VersionPattern> extends SemverClass implements Matches<V> {
   // static #release = generateInterface(['research', 'alpha', 'beta', 'rc', 'build'], 'expName').regex;
   // static #comparator = generateInterface(['v', '~', '\^', '<=', '>=', '>', '<', '='],
   // 'comp', true).regex;
@@ -259,28 +315,42 @@ export class SemVer<V extends Version, E extends ExpVer | ExperimentType | undef
     }
     SemVer[type === 'comparator' ? 'comp' : 'rel'] = temp;
     return temp;
-  };//@ts-ignore
-  private static comp; private static rel; static compName; static relName;
+  };
+  private static comp: any;
+  private static rel: any;
+  static compName: any;
+  static relName: any;
   static get comparators() { return SemVer.comp };
   static get releases() { return SemVer.rel };
-  static regex = new RegExp(`^${comparators}(?<mmp>(?<major>[0-9]+)\.(?<minor>[0-9]{1,2})\.(?<patch>[0-9]{1,3}|x))(?:-(?<experiment>(?:(?:-${releases}\.?(?<expVers>[0-9]{1}?)?)?(?:\+(?<metadata>[a-zA-Z0-9\-\.]+))?)?$`, 'm');
+  static regex = new RegExp(`^${comparators}(?<mmp>(?<major>[0-9]+)\\.(?<minor>[0-9]{1,2})\\.(?<patch>[0-9]{1,3}|x))(?:-(?<experiment>${releases}(?:\\.(?<expVers>[0-9]{1}))?(?:\\+(?<metadata>[a-zA-Z0-9\\-\\.]+))?))?`, 'm');
   static error = <T extends any>(message: string, err?: T) => { return new Error(message, err ? { cause: err } : undefined) };
 
-  matches = {} as SemVerMatchGroup<V,E,M>;
-  version: `${VersionAll<V, E, M>}` = this.version;
-  expName?: SemVerMatchGroup<V,E,M>['expName'];
-  expVers?: SemVerMatchGroup<V,E,M>['expVers'];
-  metadata?: M extends string ? Metadata<M> : never;
+  matches = {} as SemVerMatchGroup<V>;
+  version: V = this.version;
+  expName?: ExperimentName<Experiment<V>>;
+  expVers?: ExperimentVersion<Experiment<V>>;
+  experiment?: Experiment<V>;
+  metadata?: AlphaNumeric<Metadata<V>>;
   comparator?: Comparators;
-  major: SemVerMatchGroup<V,E,M>['major'];
-  minor: SemVerMatchGroup<V,E,M>['minor'];
-  patch: SemVerMatchGroup<V, E, M>['patch'];
-  includeMetadata?: boolean = true;
-  patchWildcard?: boolean = false;
-  versionOperator?: boolean;
-  includePrerelease?: boolean;
-  displayVersion: ;
-  mmp: V;
+  major: Major<V>;
+  minor: Minor<V>;
+  patch: Patch<V>;
+  includeMetadata?: true = true;
+  patchWildcard?: true;
+  versionOperator?: true;
+  includePrerelease?: true;
+
+  displayVersion = (((options = [true, true, true, undefined] as [true, true, true, undefined]) =>() => {
+    return this.updateDV(options) ;
+  })())()
+  updateDV<X extends [X[0], X[1], X[2], X[3]]>(options: [X[0], X[1], X[2], X[3]] = [this.versionOperator as X[0], this.patchWildcard as X[1], this.includePrerelease as X[2], this.includeMetadata as X[3]])  {
+    this.versionOperator = options[0] === true ? true : undefined;
+    this.patchWildcard = options[1] === true ? true : undefined;
+    this.includePrerelease = options[2] === true ? true : undefined;
+    this.includeMetadata = options[3] === true ? true : undefined;
+    return `${this.versionOperator === true ? 'v' as const : '' as const}${this.major}.${this.minor}.${this.patchWildcard === true ? 'x' as const : this.patch}${this.experiment ? this.includePrerelease === true ? `-${this.experiment}` as const : '' as const : '' as const}${this.metadata ? this.includeMetadata === true ? `+${this.metadata}` as const : '' as const : '' as const}` as `${typeof options[0] extends true ? 'v' : ''}${Major<V>}.${Minor<V>}.${typeof options[1] extends true ? 'x' : Patch<V>}${typeof options[2] extends true ? `-${Experiment<V>}` : ''}${typeof options[3] extends true ? `+${AlphaNumeric<Metadata<V>>}` : ''}`;
+  };
+  mmp: InferVersion<V>;
   isStage?: () => ReleaseType;
   get stage(): ReleaseType | typeof this.expName {
     return this.expName ? this.expName : this.isStage ? this.isStage() : this.major >= 1 ? 'production' : this.minor >= 50 ? 'staging' : 'development';
@@ -288,56 +358,47 @@ export class SemVer<V extends Version, E extends ExpVer | ExperimentType | undef
   setStage(stageFunc: () => ReleaseType) {
     this.isStage = stageFunc;
   }
-  private #exp: E extends string ? Experiment<E> : never;
-  get experiment(): E extends string ? Experiment<E> : never {
-    if (!this.#exp) {
-      return this.#exp;
-    } else {
-      return this.#exp;
-    }
-
-  }
-  set experiment(value): {}
-  handleOptions(options: DisplayOptions<E, M>) {
-    this.includeMetadata = options.includeMetadata ?? true;
-    this.patchWildcard = options.patchWildcard ?? false;
-    this.versionOperator = options.versionOperator ?? false;
-    this.includePrerelease = options.includePrerelease ?? true;
+  displayOptions!: DisplayOptions<V>;
+  updateOptions(options: DisplayOptions<V>) {
+    this.includeMetadata = options.includeMetadata ?? undefined;
+    this.patchWildcard = options.patchWildcard ?? true as true;
+    this.versionOperator = options.versionOperator ?? true as true;
+    this.includePrerelease = options.includePrerelease ?? true as true;
     this.comparator = options.comparator;
     this.experiment = options.experiment;
     this.metadata = options.metadata;
 
   }
-  constructor(version: `${VersionAll<V, E, M>}`, options: DisplayOptions<E, M> = {
-    includeMetadata: true,
-    patchWildcard: false,
-    versionOperator: false,
+  constructor(version: V, options: DisplayOptions<V> = {
+    versionOperator: true,
     includePrerelease: true,
+    patchWildcard: true
   }) {
     super(version);
     if (!SemVer.regex.test(version)) throw SemVer.error('Invalid Version', SemVer.regex.test(version));
-    this.experiment = options?.experiment
-    this.metadata = options?.metadata;
-    this.comparator = options?.comparator;
-
     this.version = version;
-    const m = SemVer.regex.exec(version)?.groups! as unknown as SemVerMatchGroup<V,E,M>;
+    this.displayOptions = options;
+    const { metadata, experiment, expName, expVers, comparator, mmp, major, minor, patch } = SemVer.regex.exec(version)?.groups! as unknown as SemVerMatchGroup<V>;
     this.matches = {
-      expName: (m.expName || undefined) as SemVerMatchGroup<V,E,M>['expName'],
-      expVers: (m.expVers ? m.expVers : null) as SemVerMatchGroup<V,E,M>['expVers'],
-      comparator: (m.comparator || null) as SemVerMatchGroup<V,E,M>['comparator'],
-      mmp: `${m.major}.${m.minor}.${m.patch}` as SemVerMatchGroup<V,E,M>['mmp'],
-      major: m.major,
-      minor: m.minor,
-      patch: m.patch,
-    };
-    this.expName = this.matches.expName;
-    this.expVers = this.matches.expVers;
-    this.comparator = this.matches.comparator;
-    this.major = this.matches.major;
-    this.minor = this.matches.minor;
-    this.patch = this.matches.patch;
-    this.mmp = `${this.major}.${this.minor}.${this.patch}` as SemVerMatchGroup<V,E,M>['mmp'];
+      metadata: metadata,
+      experiment: experiment,
+      expName: expName,
+      expVers: expVers,
+      comparator: comparator,
+      mmp: mmp,
+      major: major,
+      minor: minor,
+      patch: patch,
+    } as SemVerMatchGroup<V>;
+    this.expName = expName;
+    this.expVers = expVers;
+    this.comparator = comparator;
+    this.major = major;
+    this.minor = minor;
+    this.patch = patch;
+    this.mmp = mmp as InferVersion<V>;
+    this.updateOptions(options);
+    this.displayVersion =  this.updateDV([this.versionOperator ? true : false, this.patchWildcard ? true : false, this.experiment ? true : false, this.includeMetadata ? true : false]);
     return this;
   }
   isExperimental<E extends ExperimentType>(expName: E): expName is E {
@@ -346,84 +407,24 @@ export class SemVer<V extends Version, E extends ExpVer | ExperimentType | undef
 
   /**
    * @method update - Updates the version number to the next version.
-   * @param {T} newVersion - The new version number or the type of version to update to.
-   * @template {T extends 'major' | 'minor' | 'patch' | 'experiment' | V} newVersion - The new version number or the type of version to update to.
-   * @template {V extends Version} - The new version number or the type of version to update to.
-   * @returns {SemVer<T extends N ? T : N>} - The new SemVer object with the updated
+   * @param {T} update - The new version number or the type of version to update to.
+   * @param {DisplayOptions} [options] - The options to use when displaying the new version number.
+   * @template {T extends UpdateType} update - The new version number or the type of version to update to.
+   * @returns {SemVer<NewVersion<V,T> extends infer VP extends VersionPattern ? VP : never>} - The new SemVer object with the updated
    * version number.
    */
-  update = <
-    //EV extends `${V1}.${V2}.${V3}${E extends string ? `-${E}` : ''}${M extends string ? `+${M}` : ''}`,
-    OV extends V extends `${V1}.${V2}.${V3}` ? `${V}` : never,
-    V1 extends V extends `${infer Ver1 extends number}.${number}.${number}` ? Ver1 : never,
-    V2 extends V extends `${V1}.${infer Ver2 extends number}.${number}` ? Ver2 : never,
-    V3 extends V extends `${V1}.${V2}.${infer Ver3 extends number}` ? Ver3 : never,
-    NV extends Version,
-    T extends "major" | "minor" | "patch" | "experiment" | NV,
-    Exp extends ExpVer | `${ExperimentType}` | E | undefined,
-    MD extends string | M | undefined,
-    EV extends
-    `${T extends 'major' ? Util.AddOne<V1> : V1 }.${T extends 'major' ? 0 : T extends 'minor' ? Util.AddOne<V2> : V2 }.${T extends 'major' | 'minor' ? 0 : T extends 'patch' ? Util.AddOne<V3> : V3 }${Experiment<Exp> extends `${infer X}.${infer N extends number}` ? `-${X}.${T extends 'experiment' ? Util.AddOne<N> : N}` : Exp extends infer X extends string ? T extends 'experiment' ? `-${X}.0` : `-${X}` : ''}${M extends string ? `+${M}` : ''}`>(newVersion: T, options?: DisplayOptions<E, M>) => {
-    let { major, minor, patch, expName, expVers, experiment, metadata } = this.matches as unknown as { major: V1, minor: V2, patch: V3, expName: Experiment<E> extends `${infer Name extends string}${`.${infer N}` | ''}` ? Name : never, expVers: Experiment<E> extends `${infer Name}.${infer N extends number}` ? N : never, experiment: Experiment<E>, metadata: Metadata<M> };
-    let tempExperiment;
-    const currentVersion = `${major}.${minor}.${patch}${expName ? '-' + expName : ''}${expVers ? '.' + expVers : ''}` as OV;
-    let tempVersion;//: T extends 'major' ? `${Util.AddOne<V extends `${infer S extends number}.${number}.${number}` ? S : never>}.0.0` : T extends 'minor' ? `${V extends `${infer S extends number}.${number}.${number}` ? S : never}.${Util.AddOne<V extends `${number}.${infer S extends number}.${number}` ? S : never>}.0` : T extends 'patch' ? `${V extends `${infer S extends number}.${number}.${number}` ? S : never}.${V extends `${number}.${infer S extends number}.${number}` ? S : never}.${Util.AddOne<V extends `${number}.${number}.${infer S extends number}` ? S : never>}` : T extends V ? T : never;
-    type MajExp = `${Util.AddOne<V1>}.0.0-${Experiment<E>}`;
-    type Maj = `${Util.AddOne<V1>}.0.0`;
-    type MinExp = `${V1}.${Util.AddOne<V2>}.0-${Experiment<E>}`;
-    type Min = `${V1}.${Util.AddOne<V2>}.0`;
-    type PatExp = `${V1}.${V2}.${Util.AddOne<V3>}-${Experiment<E>}`;
-    type Pat = `${V1}.${V2}.${Util.AddOne<V3>}`;
-    switch (newVersion) {
-      case 'major':
-        tempVersion = experiment !== undefined ? `${major + 1 as Util.AddOne<typeof major>}.0.0-${experiment}` as const : `${major + 1 as Util.AddOne<typeof major>}.0.0` as const; //@ts-ignore
-        //minor = 0 as const;//@ts-ignore
-        //patch = 0 as const;
-        break;
-      case 'minor':
-        tempVersion = experiment !== undefined ? `${major}.${minor + 1 as Util.AddOne<typeof minor>}.0-${experiment}` as const : `${major}.${minor + 1 as Util.AddOne<typeof minor>}.0` as const;//@ts-ignore
-        //patch = 0 as const;
-        break;
-      case 'patch':
-        tempVersion = experiment !== undefined ? `${major}.${minor}.${patch + 1 as Util.AddOne<typeof patch>}-${experiment}` as const : `${major}.${minor}.${patch + 1 as Util.AddOne<typeof patch>}` as const;
-        break;
-      case 'experiment':
-        if (!expName) break;
-        tempExperiment = '' as const;
-        if (expVers === 9) {
-          switch (expName) {
-            case 'rc':
-              tempVersion = `${major}.${minor}.${patch}-build` as const;
-              break;
-            case 'build':
-              tempVersion = `${major}.${minor}.${patch}-alpha` as const;
-              break;
-            case 'alpha':
-              tempVersion = `${major}.${minor}.${patch}-beta` as const;
-              break;
-            case 'beta':
-              tempVersion = `${major}.${minor}.${patch}` as const;
-              break;
-            default:
-              break;
-          }
-        } else if (expVers! <= 8) {
-          tempVersion = `${major}.${minor}.${patch}${expName}.${expVers! + 1 as Util.AddOne<typeof expVers>}` as const;
-        } else {
-          SemVer.error(`Experimental Version Error.\n${currentVersion}\nPlease update the experimental branch name to a new name or remove the experimental branch name to continue using the same name. Changing version to 0.0.0\n`);
-        }
-        break;
-      default:
-        if (SemVer.regex.test(newVersion)) {
-          tempVersion = `${newVersion}` as const;
-        } else {
-          SemVer.error(`Invalid Version\nPlease enter a valid version number or version type.\nCurrent Version: ${this.version}\nAttempted Version: ${newVersion}\n`);
-        }
-        break;
-    }
-    const version = `${tempVersion}` as const;
-    return new SemVer(`${version}`, options);
+  update<T extends UpdateType>(update: T, options?: DisplayOptions<any>) {
+    return versionUpdate(this.version, update, options);
   }
-}
-export const  s = () => new SemVer('1.1.0-alpha.1+sha251');
+  /**
+   * @method new
+   * @param {NV} version - The new version number.
+   * @template {NV extends VersionPattern} NV - The new version number.
+   * @param {DisplayOptions} [options] - The options to use when displaying the new version number.
+   */
+  new<NV extends VersionPattern>(version: NV, options?: DisplayOptions<NV>) {
+    return new SemVer(version, options);
+  };
+};
 export default SemVer;
+const val = new SemVer('1.0.0-alpha.1+build').displayVersion;
