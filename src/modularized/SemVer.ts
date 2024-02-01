@@ -7,7 +7,6 @@
 
 import { SemVer as SemverClass } from 'semver';
 import { AddOne, AlphaNumeric, ArrayToString, joinArray } from '../types/utilityTypes';
-import exp from 'constants';
 export type ExperimentType = 'alpha' | 'beta' | 'rc' | 'build';
 export type ReleaseType = "production" | "staging" | "development";
 export type Comparators = "===" | "!==" | "=" | "==" | "!=" | "\>" | "\>=" | "\<" | "\<=" | "\^" | "~" | "v";
@@ -16,7 +15,7 @@ export type Comparators = "===" | "!==" | "=" | "==" | "!=" | "\>" | "\>=" | "\<
  * Represents a Version number that aligns with the SemVer specification.
  * @type {VersionPattern} VersionPattern
  */
-type VersionPattern = `${VersionNumber}`
+export type VersionPattern = `${VersionNumber}`
   | `${VersionNumber}-${ExperimentType}`
   | `${VersionNumber}-${ExperimentWithVersion}`
   | `${VersionNumber}+${AlphaNumeric<string>}`
@@ -87,68 +86,6 @@ export type Metadata<V extends VersionPattern> = V extends `${infer _Prefix}+${i
   ? AlphaNumeric<Meta>
   : never;
 
-// type MajorUpdate<V extends VersionPattern> =
-//   Experiment<V> extends never
-//   ? AlphaNumeric<Metadata<V>> extends never
-//   ? `${AddOne<Major<V>>}.0.0`
-//   : `${AddOne<Major<V>>}.0.0-${AlphaNumeric<Metadata<V>>}`
-//   : AlphaNumeric<Metadata<V>> extends never
-//   ? `${AddOne<Major<V>>}.0.0-${Experiment<V>}`
-//   : `${AddOne<Major<V>>}.0.0-${Experiment<V>}+${AlphaNumeric<Metadata<V>>}`;
-// type MinorUpdate<V extends VersionPattern> =
-//   Experiment<V> extends never
-//   ? AlphaNumeric<Metadata<V>> extends never
-//   ? `${Major<V>}.${AddOne<Minor<V>>}.0`
-//   : `${Major<V>}.${AddOne<Minor<V>>}.0-${AlphaNumeric<Metadata<V>>}`
-//   : AlphaNumeric<Metadata<V>> extends never
-//   ? `${Major<V>}.${AddOne<Minor<V>>}.0-${Experiment<V>}`
-//   : `${Major<V>}.${AddOne<Minor<V>>}.0-${Experiment<V>}+${AlphaNumeric<Metadata<V>>}`;
-// type PatchUpdate<V extends VersionPattern> =
-//   Experiment<V> extends never
-//   ? AlphaNumeric<Metadata<V>> extends never
-//   ? `${Major<V>}.${Minor<V>}.${AddOne<Patch<V>>}`
-//   : `${Major<V>}.${Minor<V>}.${AddOne<Patch<V>>}-${AlphaNumeric<Metadata<V>>}`
-//   : AlphaNumeric<Metadata<V>> extends never
-//   ? `${Major<V>}.${Minor<V>}.${AddOne<Patch<V>>}-${Experiment<V>}`
-//   : `${Major<V>}.${Minor<V>}.${AddOne<Patch<V>>}-${Experiment<V>}+${AlphaNumeric<Metadata<V>>}`;
-// type ExperimentUpdate<V extends VersionPattern> =
-//   ExperimentVersion<Experiment<V>> extends never
-//   ? AlphaNumeric<Metadata<V>> extends never
-//   ? `${InferVersion<V>}-${ExperimentName<Experiment<V>>}.1`
-//   : `${InferVersion<V>}-${ExperimentName<Experiment<V>>}.1+${AlphaNumeric<Metadata<V>>}`
-//   : ExperimentVersion<Experiment<V>> extends 9
-//   ? AlphaNumeric<Metadata<V>> extends never
-//   ? ExperimentName<Experiment<V>> extends 'rc'
-//   ? `${InferVersion<V>}-build`
-//   : ExperimentName<Experiment<V>> extends 'build'
-//   ? `${InferVersion<V>}-alpha`
-//   : ExperimentName<Experiment<V>> extends 'alpha'
-//   ? `${InferVersion<V>}-beta`
-//   : ExperimentName<Experiment<V>> extends 'beta'
-//   ? `${InferVersion<V>}`
-//   : never
-//   : ExperimentName<Experiment<V>> extends 'rc'
-//   ? `${InferVersion<V>}-build+${AlphaNumeric<Metadata<V>>}`
-//   : ExperimentName<Experiment<V>> extends 'build'
-//   ? `${InferVersion<V>}-alpha+${AlphaNumeric<Metadata<V>>}`
-//   : ExperimentName<Experiment<V>> extends 'alpha'
-//   ? `${InferVersion<V>}-beta+${AlphaNumeric<Metadata<V>>}`
-//   : ExperimentName<Experiment<V>> extends 'beta'
-//   ? `${InferVersion<V>}+${AlphaNumeric<Metadata<V>>}`
-//   : ''
-//   : AlphaNumeric<Metadata<V>> extends never
-//   ? `${InferVersion<V>}-${ExperimentName<Experiment<V>>}.${AddOne<ExperimentVersion<Experiment<V>>>}`
-//   : `${InferVersion<V>}-${ExperimentName<Experiment<V>>}.${AddOne<ExperimentVersion<Experiment<V>>>}+${AlphaNumeric<Metadata<V>>}`;
-// type VersionUpdate<V extends VersionPattern, UT extends UpdateType> =
-//   UT extends 'major'
-//   ? MajorUpdate<V>
-//   : UT extends 'minor'
-//   ? MinorUpdate<V>
-//   : UT extends 'patch'
-//   ? PatchUpdate<V>
-//   : UT extends 'experiment'
-//   ? ExperimentUpdate<V>
-//   : never;
 type ExperimentNameUpdate<V extends VersionPattern, UT extends 'major' | 'minor' | 'patch' | 'experiment'> =
   UT extends 'experiment'
     ? ExperimentVersion<Experiment<V>> extends never
@@ -296,10 +233,6 @@ function versionUpdate<V extends VersionPattern, T extends UpdateType>(oldVersio
 }
 
 export class SemVer<V extends VersionPattern> extends SemverClass implements Matches<V> {
-  // static #release = generateInterface(['research', 'alpha', 'beta', 'rc', 'build'], 'expName').regex;
-  // static #comparator = generateInterface(['v', '~', '\^', '<=', '>=', '>', '<', '='],
-  // 'comp', true).regex;
-
   static get environment() { return process.env.NODE_ENV; }
   static setMatchGroup = <C extends [...C[] extends string[] ? C[] : string[]], N extends string | null>(array: C | [...C], type: 'comparator' | 'release' = 'release', name: N = type as N) => {
     let temp: RegExpInterface<C, N, typeof type>['regex'];
@@ -410,14 +343,14 @@ export class SemVer<V extends VersionPattern> extends SemverClass implements Mat
    * @param {T} update - The new version number or the type of version to update to.
    * @param {DisplayOptions} [options] - The options to use when displaying the new version number.
    * @template {T extends UpdateType} update - The new version number or the type of version to update to.
-   * @returns {SemVer<NewVersion<V,T> extends infer VP extends VersionPattern ? VP : never>} - The new SemVer object with the updated
-   * version number.
+   * @returns {SemVer<NewVersion<V,T> extends infer VP extends VersionPattern ? VP : never>}
+   * - The new SemVer object with the updated version number.
    */
   update<T extends UpdateType>(update: T, options?: DisplayOptions<any>) {
     return versionUpdate(this.version, update, options);
   }
   /**
-   * @method new
+   * @method new - Creates a new SemVer object with the new version number.
    * @param {NV} version - The new version number.
    * @template {NV extends VersionPattern} NV - The new version number.
    * @param {DisplayOptions} [options] - The options to use when displaying the new version number.

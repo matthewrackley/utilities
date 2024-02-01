@@ -5,6 +5,8 @@
  * @copyright [Matthew Rackley's Github](https://www.github.com/matthewrackley "Matthew Rackley on github.com")
  */
 
+
+
 export namespace Util {
   export type LiteralTypes = (string | number | symbol | boolean) |
   [(string | number | symbol | boolean), ...(string | number | symbol | boolean)[]];
@@ -25,6 +27,31 @@ export namespace Util {
   export type RemoveProperty<T extends object, K extends keyof T> = Omit<T, K>;
   export type Tupleize<T extends readonly any[]> = { -readonly [K in keyof T]: T[K] };
   export type Tupler<T extends any[]> = T extends [...infer F, infer L] ? [...F, L] : never;
+  export type TupleLength<T extends readonly any[]> = T['length'];
+  export type TupleHead<T extends readonly any[]> = T[0];
+  export type TupleTail<T extends readonly any[]> = T[1];
+  export type TupleLast<T extends readonly any[]> = T[TupleLength<T>];
+  export type TuplePush<T extends readonly any[], V> = [...T, V];
+  export type TuplePop<T extends readonly any[]> = TupleHead<T>;
+  export type TupleShift<T extends readonly any[]> = TupleTail<T>;
+  export type TupleUnshift<T extends readonly any[], V> = TuplePush<T, V>;
+  export type TupleConcat<T extends readonly any[], U extends readonly any[]> = [...T, ...U];
+  export type TuplePrepend<T extends readonly any[], U extends readonly any[]> = TupleConcat<U, T>;
+  export type TupleGet<T extends readonly any[], I extends number> = T[I];
+  export type TupleSet<T extends readonly any[], I extends number, V> = [...TupleHead<T>, V, ...TupleTail<T>];
+  export type TupleRemove<T extends readonly any[], I extends number> = TupleConcat<TupleHead<T>, TupleTail<T>>;
+  export type TupleRemoveAll<T extends readonly any[], U extends readonly any[]> = TupleConcat<TupleHead<T>, TupleTail<T>>;
+  export type TupleReverse<T extends readonly any[]> = [...T];
+  export type TupleReverseInPlace<T extends readonly any[]> = [...T];
+  export type TupleSlice<T extends readonly any[], S extends number, E extends number> = [...T];
+  export type TupleSplice<T extends readonly any[], S extends number, E extends number, U extends readonly any[]> = [...T];
+  export type TupleSort<T extends readonly any[]> = [...T];
+  export type TupleSortInPlace<T extends readonly any[]> = [...T];
+  export type TupleFill<T extends readonly any[], V> = [...T];
+  export type TupleFillBy<T extends readonly any[], V> = [...T];
+  export type TupleFlat<T extends readonly T[number][]> = [...T];
+  type MakeTuple<T extends any extends Array<infer U extends string | number> ? U : never> = T extends infer L extends string | number ? Array<L> extends Array<[...infer U]> ? readonly [...U] : [...[T]]: never;
+  type valll = MakeTuple<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10>;
   /**
    * @type {Tupleizer} Tupleizer - Creates a literal tuple type.
    * @param {[...T]} args - The arguments to create a tuple from.
@@ -178,6 +205,7 @@ export namespace Util {
     ? never
     : T[K];
   };
+
   export type CapitalizeStrings<T> = {
     [K in keyof T]: string;
   };
@@ -414,7 +442,7 @@ import makeTuple = Util.makeTuple;
 import tupleHasProperty = Util.tupleHasProperty;
 import isAlphaNumeric = Util.isAlphaNumeric;
 import removeChar = Util.removeChar;
-import getInverseMapping = Util.getInverseMapping;
+import ObjectHasProperty = Util.ObjectHasProperty;
 
 export type {
   AddOne,
@@ -444,6 +472,7 @@ export type {
   MakeNormal,
   MultiCase,
   ObjectFromUnion,
+  ObjectHasProperty,
   ObjectOf,
   Opaque,
   Property,

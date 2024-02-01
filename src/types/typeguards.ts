@@ -60,3 +60,14 @@ export function isValidAlphanumeric<T extends string>(input: T): input is Util.A
   if (typeof input !== 'string') return false;
   return /^[a-zA-Z0-9\.\-]+$/.test(input);
 }
+
+export function isValidKey<O extends object, T extends keyof O>(o: O, key: T): key is T {
+  const keys = Object.keys(o) as (keyof O)[];
+  return keys.every((oKey): oKey is T => {
+    if (typeof oKey === 'object') {
+      if (oKey === key) return true;
+      isValidKey(oKey, key);
+    }
+    return oKey === key;
+  });
+}
