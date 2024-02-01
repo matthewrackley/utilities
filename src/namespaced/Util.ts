@@ -276,7 +276,8 @@ type HasChild<T, K extends T[keyof T]> = K extends T ? T : never;
     }
     return result as Findable extends undefined ? InvertedObject<O> : InvertedObject<O, Findable>;
   }
-
+  export type UppercaseOnly<T extends string> = T extends `${infer U}${infer R}` ? U extends Uppercase<U> ? R extends UppercaseOnly<R> ? `${U}${R}` : never : never : never;
+  export type LowercaseOnly<T extends string> = T extends `${infer U}${infer R}` ? U extends Lowercase<U> ? R extends LowercaseOnly<R> ? `${U}${R}` : never : never : never;
   export function isString<
     O extends { [K in keyof O]: TupleLiteral<O> },
     A extends TupleLiteral<O>[number] | undefined,//@ts=ignore
@@ -372,6 +373,8 @@ import KKNumber = Util.KKNumber;
 import TrueNonNullable = Util.TrueNonNullable;
 import MakeInverted = Util.MakeInverted;
 import InvObjHelper = Util.InvObjHelper;
+import UppercaseOnly = Util.UppercaseOnly;
+import LowercaseOnly = Util.LowercaseOnly;
 export type {
   TrueNonNullable,
   InvertedObject,
@@ -379,7 +382,9 @@ export type {
   CreateObject,
   ArrayLiteral,
   TupleLiteral,
-  KKNumber
+  KKNumber,
+  UppercaseOnly,
+  LowercaseOnly,
 };
 
 export type SimpleStringJoin<T extends string[]> = Util.SimpleStringJoin<T>;
