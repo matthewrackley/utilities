@@ -1,38 +1,49 @@
+import countries, { regionCodes } from '@countries/countries.ts';
+import { type CountriesData, type RegionCode, type Country } from '@countries/countries.types.ts';
 /**
  * @file phoneNumberInput.tsx
  * @description
  * @author Matthew Allen Rackley
  * @copyright [Matthew Rackley's Github](https://www.github.com/matthewrackley "Matthew Rackley on github.com")
  */
-
-import countryData from 'country-telephone-data';
-import { AsYouTypeFormatter, RegionCode } from 'google-libphonenumber';
+import { AsYouTypeFormatter } from 'google-libphonenumber';
 import React, { useState } from 'react';
-
-import { CountryData } from '../../../namespaced/countries.ts';
-
-const PhoneNumberInput = () => {
-  const [selectedCountry, setSelectedCountry] = useState<keyof typeof CountryData>('US');
+type CountryShortName = {
+  [K in keyof CountriesData]: Country<K>['local'] extends undefined ? Country<K>['name'] : Exclude<Country<K>['local'], undefined>;
+}
+interface Props {
+  regionCode?: RegionCode;
+}
+export const PhoneNumberInput: React.FC<Props> = (props) => {
+  const [selectedCountry, setSelectedCountry] = useState(countries[props.regionCode || 'US']);
   const [phoneNumber, setPhoneNumber] = useState('');
 
   const handleCountryChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedCountry(event.target.value as RegionCode);
+    setSelectedCountry(<R extends keyof CountriesData>() => {
+      return countries[event.target.value as R];
+    });
   };
 
-  const handlePhoneNumberChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const formatter = new AsYouTypeFormatter(selectedCountry);
-    const formattedNumber = formatter.inputDigit(event.target.value);
+  const handlePhoneNumberChange: React.HandleInput = (event) => {
+    const inputDigits = event.target.value.replace(/\D/g, '');
+    const formatter = new AsYouTypeFormatter(selectedCountry.regionCode);<
+    formatter.clear();
+
+    const formattedNumber = inputDigits.split('').reduce((acc, digit) => {
+      return formatter.inputDigit(digit);
+    }, '');
+
     setPhoneNumber(formattedNumber);
   };
 
   return (
     <div>
-      <select value={selectedCountry} onChange={handleCountryChange}>
-        {countryData.allCountries.map((country) => (
-          <option key={country.iso2} value={country.iso2 as RegionCode}>
-            {country.name} ({country.dialCode})
-          </option>
-        ))}
+      <select value={ selectedCountry.regionCode } onChange={ handleCountryChange }>
+        { regionCodes.map((r) => (
+            <option key={ r } value={ r }>
+            { countries[r].flag } { countries[r].local || countries[r].name } +{ countries[r].dialCode }
+            </option>
+          ))}
       </select>
       <input
         type="tel"

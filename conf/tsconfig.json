@@ -31,6 +31,10 @@
 		"skipLibCheck": true, // Skip type checking of declaration files
 		"noEmitOnError": false, // Skip emitting files if there are errors
 		//"resolveJsonModule": true // Include modules imported with '.json' extension
+    "paths": {
+      "countries": ["../src/modularized/countries/countries.ts"],
+      "countries.types": ["../src/modularized/countries/countries.types.ts"]
+    }
 	},
 	"include": [
 		"../src/**/*" // Include all files in the src folder

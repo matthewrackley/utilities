@@ -3,5 +3,12 @@
   "autoCopyrighter.license": "MIT",
   "autoCopyrighter.note": "[Matthew Rackley](https://www.github.com/matthewrackley \"Matthew Rackley on github.com\")",
   "copyright.author": "Matthew Allen Rackley",
-  "copyright.copyrightLine": "[Matthew Rackley's Github](https://www.github.com/matthewrackley \"Matthew Rackley on github.com\")"
+  "copyright.copyrightLine": "[Matthew Rackley's Github](https://www.github.com/matthewrackley \"Matthew Rackley on github.com\")",
+  "exportall.config.folderListener": [
+    "/src/utilities",
+    "/src/react/app/preview"
+  ],
+  "exportall.config.relExclusion": [
+    "/src/utilities/t.ts"
+  ]
 }

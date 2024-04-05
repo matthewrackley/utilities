@@ -1,9 +1,7 @@
-/**
- * @file phoneNumberInput.tsx
- * @description
- * @author Matthew Allen Rackley
- * @copyright [Matthew Rackley's Github](https://www.github.com/matthewrackley "Matthew Rackley on github.com")
- */
+import { type RegionCode } from '@countries/countries.types.ts';
 import React from 'react';
-declare const PhoneNumberInput: () => React.JSX.Element;
+interface Props {
+    regionCode?: RegionCode;
+}
+export declare const PhoneNumberInput: React.FC<Props>;
 export default PhoneNumberInput;
