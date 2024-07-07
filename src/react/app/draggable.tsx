@@ -7,18 +7,28 @@
 
 import React from 'react';
 import { Rnd, DraggableData, type RndResizeCallback, type RndDragCallback, type RndResizeStartCallback, type RndDragEvent, Position, Props as RndProps } from 'react-rnd';
-import RndBnd, { Percentage, Bounds, ChildComponent, DefaultDimensions, Fractions, MouseData, ContainerElement, PercentOfParent, Range, RndBndProps, StateGetsSets, Status, Size, RndBndStates, RndBndElementCallback } from './types/RndBnd.types';
+import RndBnd, { Percentage, Bounds, ChildComponent, DefaultDimensions, Fractions, MouseData, ContainerElement, PercentOfParent, Range, RndBndProps, StateGetsSets, Status, Size, RndBndStates, RndBndElementCallback, Fraction } from './types/RndBnd.types';
 import { DraggableEvent } from 'react-draggable';
 import { ResizeDirection, Resizable } from 're-resizable';
 import { Route, Routes, useParams } from 'react-router-dom';
 import ResizeArea, { type SimpleCSSSize, type ChildProps, ParentSize } from './resizeArea';
 import DynamicLoader from './dynamicLoader';
 
-
+export const percents: Percentage[] = [0.04, 0.06, 0.07, 0.08, 0.16, 0.17, 0.18, 0.19, 0.27, 0.28, 0.29, 0.31, 0.38, 0.39, 0.41, 0.42, 0.49, 0.51, 0.52, 0.53, 0.61, 0.62, 0.63, 0.64, 0.72, 0.73, 0.74, 0.76, 0.83, 0.84, 0.86, 0.87, 0.94, 0.96, 0.97, 0.98, 0.01, 0.02, 0.03, 0.05, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15, 0.20, 0.21, 0.22, 0.23, 0.24, 0.25, 0.26, 0.30, 0.32, 0.33, 0.34, 0.40, 0.43, 0.44, 0.45, 0.46, 0.47, 0.48, 0.35, 0.36, 0.68, 0.69, 0.70, 0.71, 0.65, 0.66, 0.67, 0.37, 0.50, 0.54, 0.55, 0.56, 0.57, 0.58, 0.59, 0.60, 0.75, 0.77, 0.78, 0.79, 0.80, 0.81, 0.82, 0.85, 0.88, 0.89, 0.90, 0.91, 0.92, 0.93, 0.95, 0.99, 0.125, 0.175, 0.225, 0.025, 0.075, 0.275, 0.325, 0.375, 0.425, 0.625, 1.00, 0.675, 0.525, 0.475, 0.575, 0.725, 0.775, 0.825, 0.875, 0.925, 0.975, 0.09090909090909091, 0.08333333333333333, 0.0078125, 0.07692307692307693, 0.06666666666666667, 0.0625, 0.03571428571428571, 0.3333333333333333, 0.03125, 0.16666666666666666, 0.015625, 0.14285714285714285, 0.1111111111111111, 0.6875, 0.9921875, 0.8125, 0.9375, 0.6666666666666666, 0.1875, 0.42857142857142855, 0.96875, 0.3125, 0.625, 0.5555555555555556, 0.984375, 0.4375, 0.875, 0.5625];
+export function isFraction(fraction: string): fraction is Fraction {
+  if (Fractions[fraction as Fraction] === undefined) return false;
+  for (const key of Object.keys(Fractions) as Fraction[]) {
+    if (fraction === key) return true;
+  };
+  return false;
+}
+export function isPercentage(percentage: number): percentage is Percentage {
+  return percents.includes(percentage);
+}
 
 
 // Write a typeguard that checks and distinguishes the percent type to determine the percentage subtype
-function isPercent<V extends Percentage>(percentage: V): percentage is V {
+export function isPercent<V extends Percentage>(percentage: V): percentage is V {
   if (typeof percentage === 'number') {
     return percentage >= 0 && percentage <= 1;
   } else if (typeof percentage === 'string') {
@@ -71,7 +81,8 @@ function withExtraProps(
 
 //T extends 'bounds' ? Bounds : T extends 'parent' | 'child' ? HTMLElement : T extends 'children' ? HTMLElement[] : T extends 'size' ? Size : T extends 'position' ? Position : T extends ((...args: any) => infer V) ? V : void;
 
-export const getBounds: RndBndElementCallback = (element: ContainerElement) => {
+export const getBounds = (element: ContainerElement) => {
+
   const boundings = element.getBoundingClientRect();
   const bounds = {} as Bounds;
   bounds.left = boundings.left;
@@ -80,23 +91,23 @@ export const getBounds: RndBndElementCallback = (element: ContainerElement) => {
   bounds.bottom = boundings.bottom;
   return bounds;
 }
-export function getMouseData<RB extends RndBndProps>(this: React.Component<RB & StateGetsSets, RndBndStates>, ev: DraggableEvent, ref: React.RefObject<Rnd> = this.props.rndRef!): MouseData {
-
+export function getMouseData<RB extends RndBndProps>(this: React.Component<RB, RndBndStates>, ev: DraggableEvent, ref: React.RefObject<Rnd> = this.props.rndRef!): MouseData {
+  let mouseData = {} as MouseData;
   const el = ref.current!.getSelfElement()!;
-  const { left, parentRight, parentTop, parentBottom } = getBounds(el);
+  const { left: parentLeft, right: parentRight, top: parentTop, bottom: parentBottom } = getBounds(el);
   const mouseX = (ev as React.MouseEvent).clientX;
   const mouseY = (ev as React.MouseEvent<HTMLElement>).clientY;
-  const lastMouseX = this.state.lastMouseX;
-  const lastMouseY = this.state.lastMouseY;
-  const deltaX = mouseX - lastMouseX;
-  const deltaY = mouseY - lastMouseY;
-  const distanceX = parentRight - parentLeft;
-  const distanceY = parentBottom - parentTop;
+  mouseData.lastMouseX = this.state.lastMouseX;
+  mouseData.lastMouseY = this.state.lastMouseY;
+  mouseData.deltaX = mouseX - mouseData.lastMouseX;
+  mouseData.deltaY = mouseY - mouseData.lastMouseY;
+  mouseData.distanceX = parentRight - parentLeft;
+  mouseData.distanceY = parentBottom - parentTop;
   const width = this.state.width;
   const height = this.state.height;
   const x = this.state.x;
   const y = this.state.y;
-
+  return mouseData;
 }
 // The box is the container that the emelent is adjusting
 // ┏━━━━━━━━━━━━━━━━━━━━┓
@@ -173,8 +184,8 @@ const stateSetters: StateGetsSets = {
 }
 
 // Create a typeguard to check that a property is an actual reference to an objec and not null or undefined
-function isContainerProps(obj: any): obj is ContainerProps {
-  return obj !== null && obj !== undefined;
+function isContainerProps(obj: any): obj is RndBnd.ContainerProps {
+  return obj !== null && obj !== undefined && obj instanceof HTMLElement;
 }
 // Create a typeguard to check that a property is an actual React.RefObject<ContainerElement> |
 // React.RefObject<React.ReactNode> and not null or undefined.
@@ -193,195 +204,249 @@ function isRef<T extends
   return obj !== null && obj !== undefined;
 }
 
-const rndBndProps = (ref: React.RefObject<Rnd>): RndBndProps => {
+function getRndBndProps(this: React.Component<RndBndProps, RndBndStates>, ref: React.RefObject<Rnd>): RndBndProps {
   if (!ref.current) throw new Error('The ref is not defined');
   const rnd = ref.current;
-  return {
-      container: rnd.getSelfElement()!,
-      childRef: null,
-      parentRef: null,
-      getRelatives<C extends ContainerElement>(): RndBnd.Relatives {
-        const container = this.container;
-        const parent = container.offsetParent as C | null;
-        if (parent) {
-          return {
-            parent: {
-              width: parent.clientWidth,
-              height: parent.clientHeight,
-              bounds: getBounds(parent),
-              element: parent
-            },
-            child: this.childRef,
-            container: {
-              width: container.offsetWidth,
-              height: container.offsetHeight,
-              x: container.offsetLeft,
-              y: container.offsetTop,
-              bounds: getBounds(container)
-            }
-          }
-        }
-      },
-      binarySearchRange: (size: number, range: Range): number => {
-        let low = 0;
-        let high = range.length - 1;
-        while (low <= high) {
-          const mid = Math.floor((low + high) / 2);
-          const midVal = range[mid];
-          if (midVal === size || (size > range[mid - 1] && size < midVal)) {
-            return mid;
-          } else if (size < midVal) {
-            high = mid - 1;
-          } else {
-            low = mid + 1;
-          }
-        }
-        return -1; // Return -1 if no range is found, though this should not happen in your case
-      },
-      range: {
-        width: [0, rnd.getParentSize().width * .1, rnd.getParentSize().width * .225, rnd.getParentSize().width * .375, rnd.getParentSize().width * .625, rnd.getParentSize().width * .775, rnd.getParentSize().width * .9, rnd.getParentSize().width],
-        height: [0, rnd.getParentSize().height * .1, rnd.getParentSize().height * .225, rnd.getParentSize().height * .375, rnd.getParentSize().height * .625, rnd.getParentSize().height * .775, rnd.getParentSize().height * .9, rnd.getParentSize().height]
-      },
-      snapToGrid(position: Position): Position {
-        const xDiffs = this.range.width.map(point => Math.abs(point - position.x));
-        const yDiffs = this.range.height.map(point => Math.abs(point - position.y));
-        const xClosest = Math.min(...xDiffs);
-        const yClosest = Math.min(...yDiffs);
-        return {
-          x: this.range.width[xDiffs.indexOf(xClosest)],
-          y: this.range.height[yDiffs.indexOf(yClosest)],
-        }
-      },
-      getPosition(position: Position): Position {
-        const xIndice = this.binarySearchRange(position.x, this.range.width);
-        const yIndice = this.binarySearchRange(position.y, this.range.height);
-        return {
-          x: this.range.width[xIndice],
-          y: this.range.height[yIndice],
-        }
-      },
-      getSize(size: Size): Size {
-        let yIndice = this.binarySearchRange(size.height, this.range.height);
-        let xIndice = this.binarySearchRange(size.width, this.range.width);
-        return {
-          width: this.range.width[xIndice],
-          height: this.range.height[yIndice]
-        }
-      },
-      defaultDimensions(percents = {
-        minWidth: 0.225,
-        minHeight: 0.225,
-        maxWidth: 1,
-        maxHeight: 1
-      }) {
-        if (Object.values(percents).every(value => typeof value === 'string')) {
-          Object.values(percents).forEach(key => {
-            if (Fractions[key as keyof typeof Fractions] === undefined) return;
-            if
-            percents[key as keyof PercentOfParent] = parseFloat(percents[key as keyof PercentOfParent]);
-          })
-        }
-        if (Object.values(percents).every(value => value > 1 || value < 0)) throw new Error('Percentages must be between 0 and 1');
-        const parent = {
-          width: rnd.getParentSize().width,
-          height: rnd.getParentSize().height,
-        }
-        return {
-          minWidth: parent.width * percents?.minWidth!,
-          minHeight: parent.height * percents?.minHeight!,
-          maxWidth: parent.width * percents?.maxWidth!,
-          maxHeight: parent.height * percents?.maxHeight!
-        }
-      },
-      initialDimensions(w = 0.55, h = 0.55): Size & Position {
-        return {
-          width: rnd.getParentSize().width * w,
-          height: rnd.getParentSize().height * h,
-          x: (rnd.getParentSize().width - (rnd.getParentSize().width * w)) / 2,
-          y: (rnd.getParentSize().height - (rnd.getParentSize().height * h)) / 2,
-        }
-      },
-      handleResize(e: DraggableEvent, d: DraggableData) {
-        const left = (this.container.offsetWidth - (this.container.offsetWidth * 0.55)) / 2;
-        const top = (this.container.offsetHeight - (this.container.offsetHeight * 0.55)) / 2;
-        const right = (this.container.offsetWidth - (this.container.offsetWidth * 0.55));
-        const bottom = (this.container.offsetHeight - (this.container.offsetHeight * 0.55));
-        let newWidth = this.size!.width as number;
-        let newHeight = this.size!.height as number;
-        const minSize = {
-          width: 0.225 * this.container.offsetWidth,
-          height: 0.225 * this.container.offsetHeight,
-        };
+  const rndBndProps: RndBndProps = {
+    setMouseData: function (this: React.Component<RndBndProps, RndBndStates>, mouseData: Partial<MouseData>) {
+      this.setState((prev) => ({ ...prev, ...mouseData }));
+    },
+    setPosition: function (this: React.Component<RndBndProps, RndBndStates>, position: Partial<Position>) {
+      this.setState((prev) => ({ ...prev, ...position }));
+    },
+    setSize: function (this: React.Component<RndBndProps, RndBndStates>, size: Partial<Size>) {
+      this.setState((prev) => ({ ...prev, ...size }));
+    },
+    setStatus: function (this: React.Component<RndBndProps, RndBndStates>, status: Partial<Status>) {
+      this.setState((prev) => ({ ...prev, ...status }));
+    },
+    setDimensions: function (this: React.Component<RndBndProps, RndBndStates>, dimensions: Partial<Size & Position>) {
+      this.setState((prev) => ({ ...prev, ...dimensions }));
+    },
+    get status() {
+      return {
+        loading: this.state.loading,
+        errorMessage: this.state.errorMessage,
+        adjustingWidth: this.state.adjustingWidth,
+        adjustingHeight: this.state.adjustingHeight,
+        isDragging: this.state.isDragging
+      } as Status;
+    },
+    get size() {
+      return { width: this.state.width, height: this.state.height } as Size;
+    },
+    get position() {
+      return { x: this.state.x, y: this.state.y } as Position;
+    },
+    get mouseData() {
+      return {
+        lastMouseX: this.state.lastMouseX,
+        lastMouseY: this.state.lastMouseY,
+        deltaX: this.state.deltaX,
+        deltaY: this.state.deltaY,
+        distanceX: this.state.distanceX,
+        distanceY: this.state.distanceY
+      } as MouseData;
+    },
+    get dimensions() {
+      return { ...this.size, ...this.position } as Size & Position;
+    },
+    containerElement: rnd.getSelfElement()!,
+    childRef: null,
+    parentRef: null,
+    rndRef: ref,
+    get state() {
+      return {
+        x: this.state.x,
+        y: this.state.y,
+        width: this.state.width,
+        height: this.state.height,
+        lastMouseX: this.state.lastMouseX,
+        lastMouseY: this.state.lastMouseY,
+        deltaX: this.state.deltaX,
+        deltaY: this.state.deltaY,
+        distanceX: this.state.distanceX,
+        distanceY: this.state.distanceY,
+        loading: this.state.loading,
+        errorMessage: this.state.errorMessage,
+        adjustingWidth: this.state.adjustingWidth,
+        adjustingHeight: this.state.adjustingHeight,
+        isDragging: this.state.isDragging,
+      } as Readonly<RndBndStates>;
+    },
+    setRef(e: Rnd) {
+      this.rnd = e;
+    },
+    rnd: ref.current,
 
-
-        if (d.deltaX !== 0 && d.x + parseFloat(String(this.state.width)) >= right) {
-          newWidth = Math.max(minSize.width, parseFloat(String(this.state.width)));
+    parent: {
+      width: this.props.containerElement.offsetParent?.clientWidth!,
+      height: this.props.containerElement.offsetParent?.clientHeight!,
+      bounds: getBounds(this.props.containerElement.offsetParent! as ContainerElement),
+      element: this.props.containerElement.offsetParent! as ContainerElement
+    },
+    child: this.props.childRef,
+    container: {
+      width: this.props.containerElement.offsetWidth,
+      height: this.props.containerElement.offsetHeight,
+      x: this.props.containerElement.offsetLeft,
+      y: this.props.containerElement.offsetTop,
+      bounds: getBounds(this.props.containerElement)
+    },
+    binarySearchRange: (size: number, range: Range): number => {
+      let low = 0;
+      let high = range.length - 1;
+      while (low <= high) {
+        const mid = Math.floor((low + high) / 2);
+        const midVal = range[mid];
+        if (midVal === size || (size > range[mid - 1] && size < midVal)) {
+          return mid;
+        } else if (size < midVal) {
+          high = mid - 1;
+        } else {
+          low = mid + 1;
         }
-
-        if (d.deltaY !== 0 && d.y + parseFloat(String(this.state.height)) >= bottom) {
-          newHeight = Math.max(minSize.height, parseFloat(String(this.state.height)));
-        }
-        this.setState({
-          width: newWidth,
-          height: newHeight,
-          x: d.x,
-          y: d.y,
-        });
-      },
-
-      onMouseMove(e: MouseEvent, d: DraggableData) {
-        if (!this.status.isDragging) return;
-        const { clientX, clientY } = e;
-        const { left, top, right, bottom } = this.container.getBoundingClientRect()!;
-        let deltaX = clientX - this.mouseData.lastMouseX;
-        let deltaY = clientY - this.mouseData.lastMouseY;
-        this.setMouseData({ lastMouseX: clientX, lastMouseY: clientY });
-
-        let newWidth = this.size.width;
-        let newHeight = this.size.height;
-        const withinSize = (inc: boolean = false) => {
-          return !inc ? newWidth <= (parent.width * 0.225) : newWidth <= this.stateDefault.width;
-        }
-        const withinPosition = (side: 'right' | 'left' = 'left') => {
-          const right = this.size.width + this.position.x;
-          const left = this.position.x;
-          return side === 'left'
-            ? left >= 0 && left <= (parent.width * .225)
-            : right <= parent.width && right >= (parent.width * .625);
-        }
-        if (deltaX > 0) {
-          // If the element is shrinking on the left side
-          if (withinPosition() && withinSize()) {
-            newWidth = Math.max(newWidth - (deltaX + ), this.parent.width * 0.55)
-          }
-          // If the element is growing on the right side
-          if (withinPosition('right') && withinSize(true)) {
-            newWidth += Math.abs((deltaX + ));
-          }
-        }
-        console.log(this.position);
-        if (deltaX < 0) {
-          // If the element is shrinking on the right side
-          if (withinPosition('right') && withinSize()) {
-            newWidth = Math.max(newWidth - deltaX, this.parent.width * 0.55);
-            // If the element is growing on the left side
-          } else if (withinPosition('left') && withinSize(true)) {
-            newWidth += Math.abs(deltaX);
-          }
-        }
-        this.setState({ width: newWidth, ...this.position });
       }
+      return -1; // Return -1 if no range is found, though this should not happen in your case
+    },
+    range: {
+      width: [0, rnd.getParentSize().width * .1, rnd.getParentSize().width * .225, rnd.getParentSize().width * .375, rnd.getParentSize().width * .625, rnd.getParentSize().width * .775, rnd.getParentSize().width * .9, rnd.getParentSize().width],
+      height: [0, rnd.getParentSize().height * .1, rnd.getParentSize().height * .225, rnd.getParentSize().height * .375, rnd.getParentSize().height * .625, rnd.getParentSize().height * .775, rnd.getParentSize().height * .9, rnd.getParentSize().height]
+    },
+    snapToGrid(this: React.Component<RndBndProps, RndBndStates>, position: Position): Position {
+      const xDiffs = this.props.range.width.map(point => Math.abs(point - position.x));
+      const yDiffs = this.props.range.height.map(point => Math.abs(point - position.y));
+      const xClosest = Math.min(...xDiffs);
+      const yClosest = Math.min(...yDiffs);
+      return {
+        x: this.props.range.width[xDiffs.indexOf(xClosest)],
+        y: this.props.range.height[yDiffs.indexOf(yClosest)],
+      }
+    },
+    getPosition(this: React.Component<RndBndProps, RndBndStates>, position: Position): Position {
+      const xIndice = this.props.binarySearchRange(position.x, this.props.range.width);
+      const yIndice = this.props.binarySearchRange(position.y, this.props.range.height);
+      return {
+        x: this.props.range.width[xIndice],
+        y: this.props.range.height[yIndice],
+      }
+    },
+    getSize(this: React.Component<RndBndProps, RndBndStates>, size: Size): Size {
+      let yIndice = this.props.binarySearchRange(size.height, this.props.range.height);
+      let xIndice = this.props.binarySearchRange(size.width, this.props.range.width);
+      return {
+        width: this.props.range.width[xIndice],
+        height: this.props.range.height[yIndice]
+      }
+    },
+    defaults: this.props.defaultDimensions(),
+    defaultDimensions(percents = { minWidth: 0.225, minHeight: 0.225, maxWidth: 1, maxHeight: 1 }) {
+      for (const key of Object.values(percents) as (typeof percents)[keyof typeof percents][]) {
+        if (typeof key === 'number' && (key < 0 || key > 1)) throw new Error('Percentages must be between 0 and 1');
+        if (typeof key === 'string' && isFraction(key)) {
+          for (const [k, v] of Object.entries(percents) as [keyof PercentOfParent, Fraction][]) {
+            if (percents[k] === key) percents[k] = Fractions[key];
+          }
+        }
+      }
+      this.defaults = {
+        minWidth: rnd.getParentSize().width * (percents?.minWidth! as Percentage),
+        minHeight: rnd.getParentSize().height * (percents?.minHeight! as Percentage),
+        maxWidth: rnd.getParentSize().width * (percents?.maxWidth! as Percentage),
+        maxHeight: rnd.getParentSize().height * (percents?.maxHeight! as Percentage)
+      }
+      return this.defaults;
+    },
 
+    initialDimensions(w = 0.55, h = 0.55): Size & Position {
+      this.initials = {
+        width: rnd.getParentSize().width * w,
+        height: rnd.getParentSize().height * h,
+        x: (rnd.getParentSize().width - (rnd.getParentSize().width * w)) / 2,
+        y: (rnd.getParentSize().height - (rnd.getParentSize().height * h)) / 2,
+      }
+      return this.initials;
+    },
+    initials: this.props.initialDimensions(),
+    handleResize(this: React.Component<RndBndProps, RndBndStates>, e: DraggableEvent, d: DraggableData) {
+      const container = this.props.container;
+      const left = (container.width - (container.width * 0.55)) / 2;
+      const top = (container.height - (container.height * 0.55)) / 2;
+      const right = (container.width - (container.width * 0.55));
+      const bottom = (container.height - (container.height * 0.55));
+      console.log(`Left: ${left}, Top: ${top}, Right: ${right}, Bottom: ${bottom}`);
+      let newWidth = this.state.width as number;
+      let newHeight = this.state.height as number;
+      console.log(`Width: ${newWidth}, Height: ${newHeight}`);
+      const minSize = {
+        width: 0.225 * container.width,
+        height: 0.225 * container.height,
+      };
+
+
+      if (d.deltaX !== 0 && d.x + parseFloat(String(this.state.width)) >= right) {
+        this.setState((prev) => ({ ...prev, width: Math.max(minSize.width, parseFloat(String(this.state.width))) }));
+        console.log(`New Width: ${this.state.width}\n`);
+      }
+      if (d.deltaY !== 0 && d.y + parseFloat(String(this.state.height)) >= bottom) {
+        this.setState((prev) => ({ ...prev, height: Math.max(minSize.height, parseFloat(String(this.state.height))) }));
+        console.log(`New Height: ${this.state.height}\n`);
+      }
+    },
+
+    onMouseMove(this: React.Component<RndBndProps, RndBndStates>, e: DraggableEvent, el?: Rnd) {
+      if (!this.state.isDragging) return;
+      const { clientX, clientY } = e as React.MouseEvent;
+      const { left, top, right, bottom } = this.props.container.bounds;
+      let deltaX = clientX - this.state.lastMouseX;
+      let deltaY = clientY - this.state.lastMouseY;
+      console.log('Mouse is moving...', `\n Left: ${left}, Top: ${top}, Right: ${right}, Bottom: ${bottom},\nClientX: ${clientX}, ClientY: ${clientY},\nDeltaX: ${deltaX}, DeltaY: ${deltaY}`);
+      this.setState((prev) => ({ ...prev, lastMouseX: clientX, lastMouseY: clientY, deltaX, deltaY }));
+      console.log(`New Mouse X/Y: ${this.state.lastMouseX}/${this.state.lastMouseY}\nNew Delta X/Y: ${this.state.deltaX}/${this.state.deltaY}\n`);
+      let newWidth = this.state.width;
+      let newHeight = this.state.height;
+      const withinSize = (inc: boolean = false) => {
+        return !inc ? newWidth <= (this.props.parent.width * 0.225) : newWidth <= this.stateDefault.width;
+      }
+      const withinPosition = (side: 'right' | 'left' = 'left') => {
+        const right = this.state.width + this.state.x;
+        const left = this.state.x;
+        return (side === 'left')
+          ? left >= 0 && left <= (this.props.parent.width * .225)
+          : right <= this.props.parent.width && right >= (this.props.parent.width * .625);
+      }
+      if (deltaX > 0) {
+        // If the element is shrinking on the left side
+        if (withinPosition() && withinSize()) {
+          newWidth = Math.max(newWidth - (deltaX + ), this.props.parent.width * 0.55)
+        }
+        // If the element is growing on the right side
+        if (withinPosition('right') && withinSize(true)) {
+          newWidth += Math.abs((deltaX + ));
+        }
+      }
+      console.log(this.props.position);
+      if (deltaX < 0) {
+        // If the element is shrinking on the right side
+        if (withinPosition('right') && withinSize()) {
+          newWidth = Math.max(newWidth - deltaX, this.props.parent.width * 0.55);
+          // If the element is growing on the left side
+        } else if (withinPosition('left') && withinSize(true)) {
+          newWidth += Math.abs(deltaX);
+        }
+      }
+      this.setState({ width: newWidth, ...this.props.position });
     }
 
   }
+  return rndBndProps;
 }
+
 
 const additionalProps: RndBndProps = {
   getRef() {
     const ref = React.createRef<Rnd>();
     if (ref.current) return ref.current;
-    return ref;
   },
   container: additionalProps.getRef(),
   binarySearchRange: (size: number, range: Range): number => {
@@ -423,113 +488,298 @@ const additionalProps: RndBndProps = {
     }
   },
 }
-function makeDraggable<P extends Rnd & RndBndProps & StateSetters>(DraggableComponent: React.ComponentType<RndProps>, additionalProps: RndBndProps) {
-  return class Draggable extends React.Component<P, RndBndStates> {
-    /// SECTION - Set States and Getters
-    setStatus(status: Partial<Status>) {
-      this.setState({ ...(status ? status : ) })
-    }
-    setSize(size: Partial<Size>) {
-      const data = {
-        width: size.width ? size.width : this.size.width,
-        height: size.height ? size.height : this.size.height,
-      };
-      this.#size = { ...data };
-    }
-    /**
-     * @function data
-     * @description Get the data of the component
-     */
-    get data() {
-      return this.#data;
+const RndWithRef = React.forwardRef<React.RefObject<Rnd>, RndProps>((props, ref) => {
+  return (
+    <Rnd ref={ ref } { ...props } />
+  )
+
+})
+function makeDraggable<PR extends RndBndProps, S extends RndBndStates, P extends ContainerElement, C extends React.ReactNode>(DraggableComponent: typeof Rnd, additionalProps: PR, childRef: React.RefObject<C>, parentRef: React.RefObject<P>) {
+  React.forwardRef<typeof childRef, RndBndProps>((props, ref) => {
+
+    return (
+      <Rnd ref={ React.createRef() } { ...Rnd.defaultProps }>
+        { }
+      </Rnd>
+    )
+  })
+  return class Draggable<Props extends PR, State extends S> extends React.Component<Props, State>, DraggableComponent implements Props {
+    setMouseData(this: React.Component<Props, State>, mouseData: Partial<MouseData>) {
+      this.setState((prev) => ({ ...prev, ...mouseData }));
     };
-    #data!: Readonly<Size & Position>;
-    setDimensions(data: Partial<Size & Position>) {
-      const size = {
-        width: data.width ? data.width : this.size.width,
-        height: data.height ? data.height : this.size.height
-      }
-      const position = {
-        x: data.x ? data.x : this.position.x,
-        y: data.y ? data.y : this.position.y,
-      };
-      this.#size = { ...size };
-      this.#position = { ...position };
-      this.#data = { ...size, ...position };
+    setPosition(this: React.Component<Props, State>, position: Partial<Position>) {
+      this.setState((prev) => ({ ...prev, ...position }));
     };
-    /**
-     * @function position
-     * @description Get the position of the component
-     */
+    setSize(this: React.Component<Props, State>, size: Partial<Size>) {
+      this.setState((prev) => ({ ...prev, ...size }));
+    };
+    setStatus(this: React.Component<Props, State>, status: Partial<Status>) {
+      this.setState((prev) => ({ ...prev, ...status }));
+    };
+    setDimensions(this: React.Component<Props, State>, dimensions: Partial<Size & Position>) {
+      this.setState((prev) => ({ ...prev, ...dimensions }));
+    };
+    get status() {
+      return {
+        loading: this.state.loading,
+        errorMessage: this.state.errorMessage,
+        adjustingWidth: this.state.adjustingWidth,
+        adjustingHeight: this.state.adjustingHeight,
+        isDragging: this.state.isDragging
+      } as Status;
+    };
+    get size() {
+      return { width: this.state.width, height: this.state.height } as Size;
+    };
     get position() {
-      return this.#position;
+      return { x: this.state.x, y: this.state.y } as Position;
     };
-    #position!: Readonly<Position>;
-    setPosition(position: Partial<Position>) {
-      const pos = {
-        x: position.x ? position.x : this.position.x,
-        y: position.y ? position.y : this.position.y,
-      };
-      this.#position = { ...pos };
-    }
-    /**
-     * @function mouseData
-     * @description Get the mouseData of the component
-     */
     get mouseData() {
-      return this.#mouseData;
+      return {
+        lastMouseX: this.state.lastMouseX,
+        lastMouseY: this.state.lastMouseY,
+        deltaX: this.state.deltaX,
+        deltaY: this.state.deltaY,
+        distanceX: this.state.distanceX,
+        distanceY: this.state.distanceY
+      } as MouseData;
     };
-    #mouseData!: Readonly<MouseData>;
-    setMouseData(mouseData: Partial<MouseData>) {
-      const data = {
-        lastMouseX: mouseData.lastMouseX ? mouseData.lastMouseX : this.mouseData.lastMouseX,
-        lastMouseY: mouseData.lastMouseY ? mouseData.lastMouseY : this.mouseData.lastMouseY,
+    get dimensions() {
+      return { ...this.size, ...this.position } as Size & Position;
+    };
+    rnd: Rnd;
+    containerElement = this.props.rnd.getSelfElement()!;
+    childRef = childRef;
+    parentRef = parentRef;
+
+    parent = {
+      width: this.props.containerElement.offsetParent?.clientWidth!,
+      height: this.props.containerElement.offsetParent?.clientHeight!,
+      bounds: getBounds(this.props.containerElement.offsetParent! as ContainerElement),
+      element: this.props.containerElement.offsetParent! as ContainerElement
+    };
+    child = this.childRef;
+    container = {
+      width: this.props.containerElement.offsetWidth,
+      height: this.props.containerElement.offsetHeight,
+      x: this.props.containerElement.offsetLeft,
+      y: this.props.containerElement.offsetTop,
+      bounds: getBounds(this.props.containerElement)
+    };
+    binarySearchRange(size: number, range: Range): number {
+      let low = 0;
+      let high = range.length - 1;
+      while (low <= high) {
+        const mid = Math.floor((low + high) / 2);
+        const midVal = range[mid];
+        if (midVal === size || (size > range[mid - 1] && size < midVal)) {
+          return mid;
+        } else if (size < midVal) {
+          high = mid - 1;
+        } else {
+          low = mid + 1;
+        }
+      }
+      return -1; // Return -1 if no range is found, though this should not happen in your case
+    };
+    range: RndBnd.SizeRange = {
+      width: [0, this.props.rnd.getParentSize().width! * .1, this.props.rnd.getParentSize().width! * .225, this.props.rnd.getParentSize().width! * .375, this.props.rnd.getParentSize().width! * .625, this.props.rnd.getParentSize().width! * .775, this.props.rnd.getParentSize().width! * .9, this.props.rnd.getParentSize().width!],
+      height: [0, this.props.rnd.getParentSize().height! * .1, this.props.rnd.getParentSize().height! * .225, this.props.rnd.getParentSize().height! * .375, this.props.rnd.getParentSize().height! * .625, this.props.rnd.getParentSize().height! * .775, this.props.rnd.getParentSize().height! * .9, this.props.rnd.getParentSize().height!]
+    };
+    snapToGrid(this: React.Component<Props, State>, position: Position): Position {
+      const xDiffs = this.props.range.width.map(point => Math.abs(point - position.x));
+      const yDiffs = this.props.range.height.map(point => Math.abs(point - position.y));
+      const xClosest = Math.min(...xDiffs);
+      const yClosest = Math.min(...yDiffs);
+      return {
+        x: this.props.range.width[xDiffs.indexOf(xClosest)],
+        y: this.props.range.height[yDiffs.indexOf(yClosest)],
+      }
+    }
+    getPosition(this: React.Component<Props, State>, position: Position): Position {
+      const xIndice = this.props.binarySearchRange(position.x, this.props.range.width);
+      const yIndice = this.props.binarySearchRange(position.y, this.props.range.height);
+      return {
+        x: this.props.range.width[xIndice],
+        y: this.props.range.height[yIndice],
+      }
+    }
+    getSize(this: React.Component<Props, State>, size: Size): Size {
+      let yIndice = this.props.binarySearchRange(size.height, this.props.range.height);
+      let xIndice = this.props.binarySearchRange(size.width, this.props.range.width);
+      return {
+        width: this.props.range.width[xIndice],
+        height: this.props.range.height[yIndice]
+      }
+    }
+    defaults = this.props.defaultDimensions();
+    defaultDimensions(percents: PercentOfParent = { minWidth: 0.225, minHeight: 0.225, maxWidth: 1, maxHeight: 1 }) {
+      for (const key of Object.values(percents) as (typeof percents)[keyof typeof percents][]) {
+        if (typeof key === 'number' && (key < 0 || key > 1)) throw new Error('Percentages must be between 0 and 1');
+        if (typeof key === 'string' && isFraction(key)) {
+          for (const [k, v] of Object.entries(percents) as [keyof PercentOfParent, Fraction][]) {
+            if (percents[k] === key) percents[k] = Fractions[key];
+          }
+        }
+      }
+      this.defaults = {
+        minWidth: this.props.rnd.getParentSize().width * (percents?.minWidth! as Percentage),
+        minHeight: this.props.rnd.getParentSize().height * (percents?.minHeight! as Percentage),
+        maxWidth: this.props.rnd.getParentSize().width * (percents?.maxWidth! as Percentage),
+        maxHeight: this.props.rnd.getParentSize().height * (percents?.maxHeight! as Percentage)
+      }
+      return this.defaults;
+    }
+    initialDimensions(w: Percentage = 0.55, h: Percentage = 0.55): Size & Position {
+      this.initials = {
+        width: this.props.rnd.getParentSize().width * w,
+        height: this.props.rnd.getParentSize().height * h,
+        x: (this.props.rnd.getParentSize().width - (this.props.rnd.getParentSize().width * w)) / 2,
+        y: (this.props.rnd.getParentSize().height - (this.props.rnd.getParentSize().height * h)) / 2,
+      }
+      return this.initials;
+    }
+    initials = this.props.initialDimensions();
+    handleResize(this: React.Component<Props, State>, e: DraggableEvent, d: DraggableData) {
+      const left = (this.props.containerElement.offsetWidth - (this.props.containerElement.offsetWidth * 0.55)) / 2;
+      const top = (this.props.containerElement.offsetHeight - (this.props.containerElement.offsetHeight * 0.55)) / 2;
+      const right = (this.props.containerElement.offsetWidth - (this.props.containerElement.offsetWidth * 0.55));
+      const bottom = (this.props.containerElement.offsetHeight - (this.props.containerElement.offsetHeight * 0.55));
+      let newWidth = this.state.width as number;
+      let newHeight = this.state.height as number;
+      const minSize = {
+        width: this.props.defaults.minWidth,
+        height: this.props.defaults.minHeight,
       };
-      this.#mouseData = { ...data };
-    };
+
+
+      if (d.deltaX !== 0 && d.x + parseFloat(String(this.state.width)) >= right) {
+        this.setState((prev) => ({ ...prev, width: Math.max(minSize.width, parseFloat(String(this.state.width))) }));
+      }
+      if (d.deltaY !== 0 && d.y + parseFloat(String(this.state.height)) >= bottom) {
+        this.setState((prev) => ({ ...prev, height: Math.max(minSize.height, parseFloat(String(this.state.height))) }));
+      }
+    }
+
+    onMouseMove(e: DraggableEvent, el?: React.Ref<Rnd>) {
+      if (!this.state.isDragging) return;
+      const { clientX, clientY } = e as React.MouseEvent;
+      const { left, top, right, bottom } = this.props.containerElement.getBoundingClientRect()!;
+      const leftDistance = clientX - left;
+      const rightDistance = right - clientX;
+      const topDistance = clientY - top;
+      const bottomDistance = bottom - clientY;
+      let deltaX = clientX - this.state.lastMouseX;
+      let deltaY = clientY - this.state.lastMouseY;
+      this.setState((prev) => ({ ...prev, lastMouseX: clientX, lastMouseY: clientY, deltaX, deltaY }));
+
+      let newX = this.state.x;
+      let newY = this.state.y;
+      let newWidth = this.state.width;
+      let newHeight = this.state.height;
+      const withinWidth = (increase: boolean = false) => {
+        return !increase ? this.state.width <= this.defaults.minWidth : this.state.width <= this.defaults.maxWidth;
+      }
+      const withinHeight = (increase: boolean = false) => {
+        return !increase ? this.state.height <= this.defaults.minHeight : this.state.height <= this.defaults.maxHeight;
+      }
+      const onHorizontalSide = (side: 'right' | 'left' = 'left') => {
+        const right = this.state.width + this.state.x;
+        const left = this.state.x;
+        return (side === 'left')
+          ? left >= 0 && left <= (this.props.parent.width * .225)
+          : right <= this.props.parent.width && right >= this.defaults.maxWidth;
+      }
+      const onVerticalSide = (side: 'top' | 'bottom' = 'top') => {
+        const bottom = this.state.height + this.state.y;
+        const top = this.state.y;
+        return (side === 'top')
+          ? top >= 0 && top <= (this.props.parent.height * .225)
+          : bottom <= this.props.parent.height && bottom >= this.defaults.maxHeight;
+      }
+      if (deltaX > 0) {
+        this.setState((prev) => ({ ...prev, x: Math.max(leftDistance + deltaX, leftDistance) }))
+        // If the element is shrinking on the left side
+        if (onHorizontalSide() && withinWidth()) {
+          this.setState((prev) => ({ ...prev, width: Math.max(this.state.width - (deltaX + this.state.width), this.props.parent.width * 0.55) }));
+        }
+        // If the element is growing on the right side
+        if (onHorizontalSide('right') && withinWidth(true)) {
+          this.setState((prev) => ({ ...prev, width: Math.abs((deltaX + this.state.width)) }));
+        }
+      }
+      console.log(this.props.position);
+      if (deltaX < 0) {
+        this.setState((prev) => ({ ...prev, x: Math.max(leftDistance + deltaX, this.state.x + deltaX) }))
+        // If the element is shrinking on the right side
+        if (onHorizontalSide('right') && withinWidth()) {
+          this.setState((prev) => ({ ...prev, width: Math.max(newWidth - deltaX, this.props.parent.width * 0.55) }));
+          // If the element is growing on the left side
+        } else if (onHorizontalSide() && withinWidth(true)) {
+          this.setState((prev) => ({ ...prev, width: this.state.width + Math.abs(deltaX) }));
+        }
+      }
+      rnd!: Rnd;
+      if (deltaY > 0) {
+        this.setState((prev) => ({ ...prev, y: Math.max(topDistance + deltaY, topDistance) }))
+        // If the element is shrinking on the top side
+        if (onVerticalSide() && withinHeight()) {
+          this.setState((prev) => ({ ...prev, height: Math.max(this.state.height - (deltaY + this.state.height), this.props.parent.height * 0.55) }));
+        }
+        // If the element is growing on the bottom side
+        if (onVerticalSide('bottom') && withinHeight(true)) {
+          this.setState((prev) => ({ ...prev, height: Math.abs((deltaY + this.state.height)) }));
+        }
+      }
+
+      if (deltaY < 0) {
+        this.setState((prev) => ({ ...prev, y: Math.max(topDistance + deltaY, this.state.y + deltaY) }))
+        // If the element is shrinking on the bottom side
+        if (onVerticalSide('bottom') && withinHeight()) {
+          this.setState((prev) => ({ ...prev, height: Math.max(this.state.height - deltaY, this.props.parent.height * 0.55) }));
+        }
+        // If the element is growing on the top side
+        if (onVerticalSide() && withinHeight(true)) {
+          this.setState((prev) => ({ ...prev, height: this.state.height + Math.abs(deltaY) }));
+        }
+      }
+    }
+    /// SECTION - Set States and Getters
     /**
      * @constructor RndExtended
      */
     constructor(props: Props) {
       super(props);
-      this.setSize({
-        width: 0,
-        height: 0,
-      });
-      this.setPosition({
+      this.state = {
         x: 0,
         y: 0,
-      });
-      this.setDimensions({
-        ...this.size,
-        ...this.position,
-      });
-      this.setStatus({
+        width: 0,
+        height: 0,
+        lastMouseX: 0,
+        lastMouseY: 0,
+        deltaX: 0,
+        deltaY: 0,
+        distanceX: 0,
+        distanceY: 0,
         loading: true,
         errorMessage: '',
         adjustingWidth: false,
         adjustingHeight: false,
         isDragging: false,
-      });
-      this.setMouseData({
-        lastMouseX: 0,
-        lastMouseY: 0,
-      });
+      }
       this.setState({ ...this.state })
     }
-    render() {
+    rndRef: React.RefObject<Rnd> = rndRef;
+
+    Component() {
       const combinedProps = { ...this.props, ...additionalProps };
       return (
         <DraggableComponent { ...combinedProps } />
       );
     }
-
-
-
-
-    container: HTMLElement = this.resizableElement.current!;
+    resizeableElement: HTMLElement = this.rnd.resizableElement.current!;
     afterMount(): void {
-      this.container = this.resizableElement.current!;
+      this.container = DraggableComponent.resizableElement.current!;
 
       this.ref.current?.getSelfElement()?.addEventListener('dblclick', (e) => {
         e.preventDefault();
@@ -561,7 +811,7 @@ function makeDraggable<P extends Rnd & RndBndProps & StateSetters>(DraggableComp
         const target = event.target!;
         let newWidth = parseFloat(this.state.width.toString());
         const withinSize = (inc: boolean = false) => {
-          return !inc ? newWidth <= (parent.width * 0.225) : newWidth <= this.stateDefault.width;
+          return !inc ? newWidth <= (parent.width * 0.225) : newWidth <= this.initials.width;
         }
         const withinPosition = (side: 'right' | 'left' = 'left') => {
           const right = this.size.width + this.position.x;
@@ -616,19 +866,19 @@ function makeDraggable<P extends Rnd & RndBndProps & StateSetters>(DraggableComp
       const onMouseUp = (event: MouseEvent) => {
 
         this.setState({ isDragging: false });
-        document.removeEventListener('mousemove', onMouseMove);
-        document.removeEventListener('mouseup', onMouseUp);
+        this.rnd?.getSelfElement()?.removeEventListener('mousemove', (ev) => this.onMouseMove(ev));
+        this.rnd?.getSelfElement()?.removeEventListener('mouseup', (ev) => this.onMouseUp(ev));
       }
       const fv = this;
       const onMouseDown = (event: MouseEvent) => {
         console.log(this.state.x);
         console.log(this.position)
         this.setState({ isDragging: true });
-        this.setState({ lastMouseX: event.clientX });
-        this.ref.current?.getSelfElement()?.addEventListener('mousemove', onMouseMove);
-        this.ref.current?.getSelfElement()?.addEventListener('mouseup', onMouseUp);
+        this.setState({ lastMouseX: event.clientX, lastMouseY: event.clientY });
+        this.rnd?.getSelfElement()?.addEventListener('mousemove', (ev) => this.onMouseMove(ev,));
+        this.rnd?.getSelfElement()?.addEventListener('mouseup', onMouseUp);
       }
-      this.ref.current?.getSelfElement()?.addEventListener('mousedown', onMouseDown);
+      this.rnd?.getSelfElement()?.addEventListener('mousedown', onMouseDown);
     }
     componentWillUnmount(): void {
       this.ref.current?.getSelfElement()?.removeEventListener('dblclick', (e) => {
@@ -844,8 +1094,8 @@ function makeDraggable<P extends Rnd & RndBndProps & StateSetters>(DraggableComp
       const handleResizeStop: RndResizeCallback = (e, dir, elementRef, delta, position) => {
         const { x, y } = position;
 
-        let newWidth = parseFloat(this.state.width as string);
-        let newHeight = parseFloat(this.state.height as string);
+        let newWidth = parseFloat(this.state.width as unknown as string);
+        let newHeight = parseFloat(this.state.height as unknown as string);
         let height = newHeight;
         let width = newWidth;
         if ((this.state.x + width) > parent.width) {
@@ -859,6 +1109,7 @@ function makeDraggable<P extends Rnd & RndBndProps & StateSetters>(DraggableComp
           height: newHeight,
         });
       }
+      const Component = this.Component();
 
       console.log('state', this.state);
       const getClosestSnapPoint: RndResizeCallback = (e, direction, ref, delta, position) => {
@@ -871,7 +1122,7 @@ function makeDraggable<P extends Rnd & RndBndProps & StateSetters>(DraggableComp
 
       return (
         <Rnd
-          ref={ el => (this.container = el!) }
+          ref={ (el) => (this.rnd = el!) }
           className="prop-box"
           bounds=".resize-area"
           dragGrid={ [parent.width / 48, parent.height / 48] }
@@ -894,9 +1145,7 @@ function makeDraggable<P extends Rnd & RndBndProps & StateSetters>(DraggableComp
               topRight: 'ne-handle',
             }
           }
-          onMouseMove={ (e) => {
-
-          } }
+          onMouseMove={ this.onMouseMove() }
           onResizeStop={ handleResizeStop }
           onDragStop={ onDragStop }
           onDragStart={ (e, d) => {
@@ -928,5 +1177,6 @@ function makeDraggable<P extends Rnd & RndBndProps & StateSetters>(DraggableComp
       );
     }
   }
+}
 
-  export default FileViewer;
+export default FileViewer;

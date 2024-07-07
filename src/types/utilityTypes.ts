@@ -173,17 +173,17 @@ namespace Util {
     const val = `${num + 1}` as const;
     return (num + 1) as typeof num extends infer N extends number
       ? `${N}` extends `${infer N3 extends 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8}`
-        ? ParseInt<`${AddTen<N3>}`>
+      ? ParseInt<`${Util.SimpleMath<N3>}`>
       : `${N}` extends `${infer N3 extends 9}`
-        ? 10
+      ? 10
       : `${N}` extends `${infer N3 extends Util.BelowTen}${infer N2 extends 0 | Util.BelowTen}`
-        ? `${N3}${N2}` extends `${99}`
-          ? 100
-        : ParseInt<`${N2 extends 9 ? AddTen<N3> : N3}${AddTen<N2>}`>
+      ? `${N3}${N2}` extends `${99}`
+      ? 100
+      : ParseInt<`${N2 extends 9 ? Util.SimpleMath<N3> : N3}${Util.SimpleMath<N2>}`>
       : `${N}` extends `${infer N3 extends Util.BelowTen}${infer N2 extends 0 | Util.BelowTen}${infer N1 extends 0 | Util.BelowTen}`
-        ? ParseInt<`${N1 extends 9 ? N2 extends 9 ? AddTen<N3> : N3 : N3}${N1 extends 9 ? AddTen<N2> : N2}${AddTen<N1>}`>
+      ? ParseInt<`${N1 extends 9 ? N2 extends 9 ? Util.SimpleMath<N3> : N3 : N3}${N1 extends 9 ? Util.SimpleMath<N2> : N2}${Util.SimpleMath<N1>}`>
       : never
-    : never;
+      : never;
   }
   export type AddLater<N extends number = 99> = N extends number ? AddOne<N> : never;
 
@@ -192,17 +192,14 @@ namespace Util {
     B extends number
   > = `${A}` extends infer TA
     ? `${B}` extends infer TB
-      ? `${A extends 0 ? '' : A}${B extends 0 ? '' : B}` extends infer R
-        ? R extends ''
-          ? 0
-          : ParseInt<R>
-        : never
-      : never
+    ? `${A extends 0 ? '' : A}${B extends 0 ? '' : B}` extends infer R
+    ? R extends ''
+    ? 0
+    : ParseInt<R>
+    : never
+    : never
     : never;
 
-  function addNum<N extends number>(num: N): NumArray<N> {
-    return (num + 1) as NumArray<N>;
-  }
 
 
 
@@ -246,38 +243,82 @@ namespace Util {
   export type ObjectHasProperty<Obj1, Obj2, Property extends keyof Obj1 | keyof Obj2 = keyof Obj1 | keyof Obj2> = Property extends keyof Obj1 ? Obj1[Property] : Property extends keyof Obj2 ? Obj2[Property] : never;
   export type AddTenHelper<T extends '+' | '-' = '+'> = {
     [K in Util.BelowTen]: K extends 9 ? T extends '-' ? 8 : 0 : TenArray<T>[K];
-    } & {
-      0: T extends '-' ? 9 : 1;
-    };
+  } & {
+    0: T extends '-' ? 9 : 1;
+  };
   export type SimpleMath<N extends number | '', T extends '+' | '-' = '+'> = AddTenHelper<T>[N extends keyof AddTenHelper<T> ? N : never];
   export type AddOneSm<T> = AdditionHelper[T extends keyof AdditionHelper ? T : never];
+  export type OneHundred = Util.ParseInt<`${Util.BelowTen}${0 | Util.BelowTen}`> | 100 | Util.ParseInt<`${0 | Util.BelowTen}`>;
+  export type Fifty = Util.ParseInt<`${1 | 2 | 3 | 4}${0 | Util.BelowTen}`> | 50 | Util.ParseInt<`${0 | Util.BelowTen}`>;
+  export type Fifteen = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15;
+  // export type HandleMath<N extends Util.OneThousand, T extends '+' | '-' = '+'> =
+  //   `${N}` extends `${infer N3 extends Util.BelowTen}${infer N2 extends 0 | Util.BelowTen}${infer N1 extends 0 | Util.BelowTen}`
+  //     ? T extends '-'
+  //       ? Util.ParseInt<`${N1 extends 0 ? N2 extends 0 ? N3 extends 1 ? '' : Util.SimpleMath<N3, T> : N3 : N3}${N1 extends 0 ? Util.SimpleMath<N2, T> : N2}${Util.SimpleMath<N1, T>}`>
+  //     : Util.ParseInt<`${N1 extends 9 ? N2 extends 9 ? Util.SimpleMath<N3, T> : N3 : N3}${N1 extends 9 ? Util.SimpleMath<N2, T> : N2}${Util.SimpleMath<N1, T>}`>
+  //   : `${N}` extends `${infer N3 extends Util.BelowTen}${infer N2 extends 0 | Util.BelowTen}`
+  //     ? T extends '-'
+  //       ? Util.ParseInt<`${N2 extends 0 ? N3 extends 1 ? '' : Util.SimpleMath<N3, T> : N2}${Util.SimpleMath<N2, T>}`>
+  //     : `${N3}${N2}` extends 99
+  //       ? 100
+  //     : Util.ParseInt<`${N2 extends 9 ? Util.SimpleMath<N3, T> : N3}${Util.SimpleMath<N2, T>}`>
+  //   : `${N}` extends `${infer N3 extends 0 | Util.BelowTen}`
+  //     ? T extends '-'
+  //       ? Util.SimpleMath<N3, T>
+  //     : N3 extends 9
+  //       ? 10
+  //     : Util.SimpleMath<N3, T>
+  //   : never;
 
-  export type HandleMath<N extends Util.OneThousand, T extends '+' | '-' = '+'> =
-    `${N}` extends `${infer N3 extends Util.BelowTen}${infer N2 extends 0 | Util.BelowTen}${infer N1 extends 0 | Util.BelowTen}`
+  // export type HandleMathHundreds<N extends Util.OneHundred, T extends '+' | '-' = '+'> =
+  //   `${N}` extends `${infer N1 extends 0 | Util.BelowTen}`
+  //     ? T extends '-'
+  //       ? Util.ParseInt<`${N1 extends 0 ? N1 : Util.SimpleMath<N1, T>}`>
+  //     : Util.ParseInt<`${N1 extends 9 ? 10 : Util.SimpleMath<N1, T>}`>
+  //   : `${N}` extends `${infer N2 extends Util.BelowTen}${infer N1 extends 0 | Util.BelowTen}`
+  //     ? T extends '-'
+  //       ? Util.ParseInt<`${N1 extends 0 ? N2 extends 1 ? '' : Util.SimpleMath<N2, T> : N2}${Util.SimpleMath<N1, T>}`>
+  //     : Util.ParseInt<`${N1 extends 9 ? N2 extends 9 ? 1 : '' : ''}${N1 extends 9 ? Util.SimpleMath<N2, T> : N2}${Util.SimpleMath<N1, T>}`>
+  //   : never;
+  export type HandleMathFifties<N extends Util.Fifty, T extends '+' | '-' = '+'> =
+    `${N}` extends `${infer N1 extends 0 | Util.BelowTen}`
       ? T extends '-'
-        ? Util.ParseInt<`${N1 extends 0 ? N2 extends 0 ? N3 extends 1 ? '' : Util.SimpleMath<N3, T> : N3 : N3}${N1 extends 0 ? Util.SimpleMath<N2, T> : N2}${Util.SimpleMath<N1, T>}`>
-      : Util.ParseInt<`${N1 extends 9 ? N2 extends 9 ? Util.SimpleMath<N3, T> : N3 : N3}${N1 extends 9 ? Util.SimpleMath<N2, T> : N2}${Util.SimpleMath<N1, T>}`>
-    : `${N}` extends `${infer N3 extends Util.BelowTen}${infer N2 extends 0 | Util.BelowTen}`
+        ? Util.ParseInt<`${N1 extends 0 ? N1 : Util.SimpleMath<N1, T>}`>
+      : Util.ParseInt<`${N1 extends 9 ? 10 : Util.SimpleMath<N1, T>}`>
+    : `${N}` extends `${infer N2 extends 1 | 2 | 3 | 4 | 5}${infer N1 extends 0 | Util.BelowTen}`
       ? T extends '-'
-        ? Util.ParseInt<`${N2 extends 0 ? N3 extends 1 ? '' : Util.SimpleMath<N3, T> : N2}${Util.SimpleMath<N2, T>}`>
-      : `${N3}${N2}` extends 99
-        ? 100
-      : Util.ParseInt<`${N2 extends 9 ? Util.SimpleMath<N3, T> : N3}${Util.SimpleMath<N2, T>}`>
-    : `${N}` extends `${infer N3 extends 0 | Util.BelowTen}`
-      ? T extends '-'
-        ? Util.SimpleMath<N3, T>
-      : N3 extends 9
-        ? 10
-      : Util.SimpleMath<N3, T>
+        ? Util.ParseInt<`${N1 extends 0 ? N2 extends 1 ? '' : Util.SimpleMath<N2, T> : N2}${Util.SimpleMath<N1, T>}`>
+      : Util.ParseInt<`${N1 extends 9 ? N2 extends 4 | 5 ? 5 : Util.SimpleMath<N2, T> : N2}${N2 extends 5 ? 0 : Util.SimpleMath<N1, T>}`>
     : never;
-  export type OneThousand = Util.ParseInt<`${Util.BelowTen}${0 | Util.BelowTen}`> | Util.ParseInt<`${Util.BelowTen}${0 | Util.BelowTen}${0 | Util.BelowTen}`> | Util.ParseInt<`${0 | Util.BelowTen}`>;
-  export type Addition<N extends Util.OneThousand> = Util.HandleMath<N, '+'>;
-  export type Subtraction<N extends Util.OneThousand> = Util.HandleMath<N, '-'>;
-  export type NumArray<N extends Util.OneThousand, T extends '+' | '-' = '+'> = {
-    [K in Util.OneThousand]: Util.HandleMath<K, T>;
-  }[N];
-
-  export type HundredArray = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+  export type OneThousand = Util.ParseInt<`${Util.BelowTen}${0 | Util.BelowTen}`> | Util.ParseInt<`${Util.BelowTen}${0 | Util.BelowTen}${0 | Util.BelowTen}`> | Util.ParseInt<`${0 | Util.BelowTen}` >;
+  // export type Addition<N extends Util.OneThousand> = Util.HandleMath<N, '+'>;
+  // export type Subtraction<N extends Util.OneThousand> = Util.HandleMath<N, '-'>;
+  // export type Addition100<N extends Util.OneHundred> = Util.HandleMathHundreds<N, '+'>;
+  // export type Subtraction100<N extends Util.OneHundred> = Util.HandleMathHundreds<N, '-'>;
+  export type Addition50<N extends Util.Fifty> = Util.HandleMathFifties<N, '+'>;
+  export type Subtraction50<N extends Util.Fifty> = Util.HandleMathFifties<N, '-'>;
+  export function addFifty<N extends Util.Fifty>(num: N): Util.Addition50<N> {
+    return num + 1 as Util.Addition50<N>;
+  }
+  export function subtractFifty<N extends Util.Fifty>(num: N): Util.Subtraction50<N> {
+    return num - 1 as Util.Subtraction50<N>;
+  }
+  // export type NumArray<N extends Util.OneThousand, T extends '+' | '-' = '+'> = {
+  //   [K in Util.OneThousand]: Util.HandleMath<K, T>;
+  // }[N];
+  type test = Util.HandleMathFifties<0, '-'>;
+  export type HundredArray<T extends '+' | '-' = '+'> = T extends '-'
+    ? [0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+    10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+    20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+    30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
+    40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
+    50, 51, 52, 53, 54, 55, 56, 57, 58, 59,
+    60, 61, 62, 63, 64, 65, 66, 67, 68, 69,
+    70, 71, 72, 73, 74, 75, 76, 77, 78, 79,
+    80, 81, 82, 83, 84, 85, 86, 87, 88, 89,
+    90, 91, 92, 93, 94, 95, 96, 97, 98, 99]
+    : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
     11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
     21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
     31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
@@ -286,7 +327,23 @@ namespace Util {
     61, 62, 63, 64, 65, 66, 67, 68, 69, 70,
     71, 72, 73, 74, 75, 76, 77, 78, 79, 80,
     81, 82, 83, 84, 85, 86, 87, 88, 89, 90,
-    91, 92, 93, 94, 95, 96, 97, 98, 99];
+    91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 100];
+  export type FiftyArray<T extends '+' | '-' = '+'> = T extends '-'
+    ? [0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+    10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+    20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+    30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
+    40, 41, 42, 43, 44, 45, 46, 47, 48, 49]
+    : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+    11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+    21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+    31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+    41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 50];
+  export type Add50<N extends Util.Fifty> = Util.FiftyArray[N];
+  export type Subtract50<N extends Util.Fifty> = Util.FiftyArray<'-'>[N];
+  export type Add100<N extends Util.OneHundred> = Util.HundredArray[N];
+  export type Subtract100<N extends Util.OneHundred> = Util.HundredArray<'-'>[N];
+  export type Reset = 0;
   export type BelowOneHundred = Util.HundredArray[number];
   export type TenArray<T extends '+' | '-' = '+'> = T extends '-' ? [9, 0, 1, 2, 3, 4, 5, 6, 7] : [1, 2, 3, 4, 5, 6, 7, 8, 9];
   export type BelowTen = TenArray<'+'>[number];
@@ -337,11 +394,17 @@ namespace Util {
     +readonly [P in keyof T]: DeepReadonly<T[P]>;
   };
 
-  export function addition<N extends OneThousand>(num: N): Util.Addition<N> {
-    return num + 1 as Util.Addition<N>;
+  export function addition<N extends Util.Fifty>(num: N): Util.Add50<N> {
+    return num + 1 as Util.Add50<N> extends Util.Fifty ? Util.Add50<N> : never;
   }
-  export function subtraction<N extends OneThousand>(num: N): Util.Subtraction<N> {
-    return num - 1 as Util.Subtraction<N>;
+  export function addition100<N extends OneHundred>(num: N): Util.Add100<N> extends OneHundred ? Util.Add100<N> : never {
+    return num + 1 as Util.Add100<N> extends OneHundred ? Util.Add100<N> : never;
+  }
+  export function subtraction<N extends Util.Fifty>(num: N): Util.Subtract50<N> {
+    return num - 1 as Util.Subtract50<N> extends Util.Fifty ? Util.Subtract50<N> : never;
+  }
+  export function subtraction100<N extends OneHundred>(num: N): Util.Subtract100<N> extends OneHundred ? Util.Subtract100<N> : never{
+    return num - 1 as Util.Subtract100<N> extends OneHundred ? Util.Subtract100<N> : never;
   }
   export type DeepFreezeRecursive<T> = DeepReadonly<DeepFreeze<T>>;
   export type DeepFreeze<T> = T extends (infer U)[]
@@ -349,6 +412,12 @@ namespace Util {
     : T extends object
     ? DeepFreezeObject<T>
     : T;
+
+  export interface SplitStr<T extends string> {
+    value: T;
+    substrings: T extends `${infer F}${infer R}` ? [F, ...SplitStr<R>['substrings']] : [];
+    length: T extends `${infer F}${infer R}` ? [F, ...SplitStr<R>['substrings']]['length'] : 0;
+  }
 
   export type Constructor<T = {}> = new (...args: any[]) => T;
   export type UnionFromArray<T> = Extract<T, Array<string>>[number] | Extract<T, string>;
@@ -358,55 +427,228 @@ namespace Util {
   export type ReturnArray<K extends keyof T, T> = <V extends T[K]>(ind: K) => [keys: K, values: V];
   export type CreateUnion<K extends keyof T, V extends T[K], T extends ObjectOf<T, K>> = (array: T) => (index: K) => [keys: K, values: V];
   export type IndexByType<T, K extends keyof T> = <V extends T[keyof T]>(ind: K) => [keys: K, values: V];
-  export = {};
 }
 export namespace Metadata {
-  export type Config<M extends [M extends string ? M : string, M extends string ? M : never][] extends Tuple<string, string>[] ? [M extends string ? M : string, M extends string ? M : never][] : never> = BaseObject<M> & {
-    [K in M[number][0]as K extends keyof Config<M> & M[number][0] ? K : never]: Config<M>[K] extends M[number][1] ? M[number][1] : never;
-  };
-  export type BaseObject<Meta extends Tuple<string, string>[]> = {
-    file?: Meta[number][0] extends 'file' ? Meta[number][1] : never;
-    name: Meta[number][0] extends 'name' ? Meta[number][1] : never;
-    author?: Meta[number][0] extends 'author' ? Meta[number][1] : never;
-    version: Meta[number][0] extends 'version' ? Meta[number][1] : never;
-    description: Meta[number][0] extends 'description' ? Meta[number][1] : never;
-    copyright?: Meta[number][0] extends 'copyright' ? Meta[number][1] : never;
+
+  export type Config<P> = P extends [string, string] ? BaseObject<P> & {
+    [K in P as K[0]]: K[1];
+  } : never;
+  export type BaseObject<P> = P extends [string, string]
+    ? P extends [P[0] extends string ? P[0] : never, P[1] extends string ? P[1] : never] ? {
+    version: P[1];
+    description: P[1];
+    author?: P[1];
+    copyright?: P[1];
+  } & ({
+    file?: P[1];
+    name: P[1];
   } | {
-    file: Meta[number][0] extends 'file' ? Meta[number][1] : never;
-    name?: Meta[number][0] extends 'name' ? Meta[number][1] : never;
-    author?: Meta[number][0] extends 'author' ? Meta[number][1] : never;
-    version: Meta[number][0] extends 'version' ? Meta[number][1] : never;
-    description: Meta[number][0] extends 'description' ? Meta[number][1] : never;
-    copyright?: Meta[number][0] extends 'copyright' ? Meta[number][1] : never;
-  };
-  export type KeyValuePairs<K extends string, V> = [K, V][];
-  export type Author<K extends string, V extends string> = K extends 'author' ? [K, V] : never;
-  export type Description<K extends string, V extends string> = K extends 'description' ? [K, V] : never;
-  export type Version<K extends string, V extends string> = K extends 'version' ? [K, V] : never;
-  export type File<K extends string, V extends string> = K extends 'file' ? [K, V] : never;
-  export type Name<K extends string, V extends string> = K extends 'name' ? [K, V] : never;
-  export type Copyright<K extends string, V extends string> = K extends 'copyright' ? [K, V] : never;
+    file: P[1];
+    name?: P[1];
+  }) : never : never;
 
-  export type Tuple<K extends string, V extends string> =
-    K extends 'description'
-    ? Description<K, V>
-    : K extends 'version'
-    ? Version<K, V>
-    : K extends 'file'
-    ? File<K, V>
-    : K extends 'name'
-    ? Name<K, V>
-    : K extends 'author'
-    ? Author<K, V>
-    : K extends 'copyright'
-    ? Copyright<K, V>
-    : [K, V];
+  type MainKeys = 'name' | 'version' | 'file' | 'author' | 'copyright' | 'description';
 
-  export * as Metadata from Metadata;
+  export type Pairs<P extends P[number][]> = P extends Pair<P[number]>[] ? P : never;
+  /**
+   * @type {Author} Author - The author of the package.
+   */
+  export type Author<P> = P extends [string, string]
+    ? P extends [P[0] extends 'author' ? P[0] : never, P[1] extends string ? P[1] : never]
+      ? ['author', P[1]] & { __type: 'author' }
+    : never
+  : never;
+  /**
+   * @type {Description} Description - The description of the package.
+   */
+  export type Description<P> = P extends [string, string]
+    ? P extends [P[0] extends 'description' ? P[0] : never, P[1] extends string ? P[1] : never]
+      ? ['description', P[1]] & { __type: 'description' }
+    : never
+  : never;
+  /**
+   * @type {Version} Version - The version of the package.
+   */
+  export type Version<P> = P extends [string, string]
+    ? P extends [P[0] extends 'version' ? P[0] : never, P[1] extends string ? P[1] : never]
+      ? ['version', P[1]] & { __type: 'version' }
+    : never
+  : never;
+  /**
+   * @type {File} File - The file of the package.
+   */
+  export type File<P> = P extends [string, string]
+    ? P extends [P[0] extends 'file' ? P[0] : never, P[1] extends string ? P[1] : never]
+      ? ['file', P[1]] & { __type: 'file' }
+    : never
+  : never;
+  /**
+   * @type {Name} Name - The name of the package.
+   */
+  export type Name<P> = P extends [string, string]
+    ? P extends [P[0] extends 'name' ? P[0] : never, P[1] extends string ? P[1] : never]
+      ? ['name', P[1]] & { __type: 'name' }
+    : never
+  : never;
+  /**
+   * @type {Copyright} Copyright - The copyright of the package.
+   */
+  export type Copyright<P> = P extends [string, string]
+    ? P extends [P[0] extends 'copyright' ? P[0] : never, P[1] extends string ? P[1] : never]
+      ? ['copyright', P[1]] & { __type: 'copyright' }
+    : never
+  : never;
+
+  /**
+   * @type {Pair} Pair - A key-value pair.
+   * @template P - The key-value pair.
+   */
+  export type Pair<P> = P extends [string, string]
+    ? P extends [P[0] extends string ? P[0] : never, P[1] extends string ? P[1] : never]
+      ? P
+    : never
+  : never;
+
+  /**
+   * @function makeBasePair - Creates a base pair from key-value pairs.
+   * @type {MakeBasePair} BasePair - An array of key-value pairs with optional __type properties.
+   * @param {Pair<[string, string]>[]} pair - The key-value pair.
+   * @returns {BasePair<[string, string]>} The base pair.
+   */
+  export const makeBasePair: MakeBasePair = <P>(...pair: Pair<P>[]) => {
+    let array = [] as BasePair<P>;
+    pair.forEach((p) => {
+      if (isSinglePair(p)) array.push(p as { [K in Pair<P> as K[0]]: MetaPair<K>; }[Pair<P>[0]]);
+    });
+    if (!isPairs(array as Pair<P>[])) return null as never;
+    return array as BasePair<P>;
+  }
+  const value = makeBasePair(['cowboy', 'balloons'], ['name', 'test'], ['version', '1.0.0'], ['author', 'Matthew Rackley'], ['description', 'A test package.']);
+  /**
+   * @type MakeBasePair - Checks if an array is a base pair.
+   * @template P - The key-value pair.
+   * @returns {(P extends [K,V] ? MetaPair<P> : never)[]} The Final Array.
+   */
+  export type MakeBasePair = <P>(...pair: Pair<P>[]) => BasePair<P>;//(P extends [string,string] ? MetaPair<P> : never)[];
+  /**
+   * @type BasePair - An array of key-value pairs with optional __type properties.
+   * @template P - The key-value pair.
+   */
+  export type BasePair<P> = Pair<P> extends [string, string]
+    ? Pair<P> extends [Pair<P>[0] extends string ? Pair<P>[0] : never, Pair<P>[1] extends string ? Pair<P>[1] : never]
+      ? {
+        [K in Pair<P> as K[0]]: MetaPair<K>;
+      }[Pair<P>[0]][]
+    : never
+  : never;
+
+  /**
+   * @type MetaPair - A key-value pair with a __type property or a normal key-value pair.
+   * @template P - The key-value pair.
+   */
+  export type MetaPair<P> = P extends [string, string]
+    ? P extends [P[0] extends string ? P[0] : never, P[1] extends string ? P[1] : never]
+      ? P[0] extends MainKeys
+        ? P[0] extends 'name'
+          ? ['name', P[1]] & { __type: 'name' }
+        : P[0] extends 'version'
+          ? ['version', P[1]] & { __type: 'version' }
+        : P[0] extends 'file'
+          ? ['file', P[1]] & { __type: 'file' }
+        : P[0] extends 'author'
+          ? ['author', P[1]] & { __type: 'author' }
+        : P[0] extends 'description'
+          ? ['description', P[1]] & { __type: 'description' }
+        : P[0] extends 'copyright'
+          ? ['copyright', P[1]] & { __type: 'copyright' }
+        : never
+      : [P[0], P[1]]
+    : never
+  : never;
+  /**
+   * @function isSinglePair - Checks if a pair is a common key-value pair.
+   * @param {Pair<P>} pair - The pair to check.
+   * @returns {pair is MetaPair<P>} Whether the pair is a common key-value pair.
+   */
+  export function isSinglePair<P>(pair: Pair<P>): pair is MetaPair<P> extends Pair<P> ? MetaPair<P> : never {
+    if (!Array.isArray(pair)) return false;
+    const [k, v] = pair;
+    if (typeof k !== 'string') return false;
+    if (typeof v !== 'object' && typeof v !== 'string') return false;
+    return ((isAuthorPair(pair) || isVersionPair(pair) || isFilePair(pair) || isNamePair(pair) || isDescriptionPair(pair) || isCopyrightPair(pair)) && pair.length === 2) || pair.length === 2;
+  }
+  /**
+   * @function isAuthorPair - Checks if a pair is an author pair.
+   * @param {Pair<P>} pair - The pair to check.
+   * @returns {pair is Author<P>} Whether the pair is an author pair.
+   */
+  export function isAuthorPair<P>(pair: Pair<P>): pair is Author<P> extends Pair<P> ? Author<P> : never {
+    const [k, v] = pair;
+    return k === 'author' && typeof v === 'string' && pair.length === 2;
+  }
+  /**
+   * @function isVersionPair - Checks if a pair is a version pair.
+   * @param {Pair<P>} pair - The pair to check.
+   * @returns {pair is Version<P>} Whether the pair is a version pair.
+   */
+  export function isVersionPair<P>(pair: Pair<P>): pair is Version<P> extends Pair<P> ? Version<P> : never {
+    const [k, v] = pair;
+    return k === 'version' && typeof v === 'string' && pair.length === 2;
+  }
+  /**
+   * @function isFilePair - Checks if a pair is a file pair.
+   * @param {Pair<P>} pair - The pair to check.
+   * @returns {pair is File<P>} Whether the pair is a file pair.
+   */
+  export function isFilePair<P>(pair: Pair<P>): pair is File<P> extends Pair<P> ? File<P> : never {
+    const [k, v] = pair as Pair<P>;
+    return k === 'file' && typeof v === 'string' && pair.length === 2;
+  }
+  /**
+   * @function isNamePair - Checks if a pair is a name pair.
+   * @param {Pair<P>} pair - The pair to check.
+   * @returns {pair is Name<P>} Whether the pair is a name pair.
+   */
+  export function isNamePair<P>(pair: Pair<P>): pair is Name<P> extends Pair<P> ? Name<P> : never {
+    const [k, v] = pair;
+    return k === 'name' && typeof v === 'string' && pair.length === 2;
+  }
+  /**
+   * @function isDescriptionPair - Checks if a pair is a description pair.
+   * @param {Pair<P>} pair - The pair to check.
+   * @returns {pair is Description<P>} Whether the pair is a description pair.
+   */
+  export function isDescriptionPair<P>(pair: Pair<P>): pair is Description<P> extends Pair<P> ? Description<P> : never {
+    const [k, v] = pair;
+    return k === 'description' && typeof v === 'string' && pair.length === 2;
+  }
+
+  /**
+   * @function isCopyrightPair - Checks if a pair is a description pair.
+   * @param {Pair<P>} pair - The pair to check.
+   * @returns {pair is Description<P>} Whether the pair is a description pair.
+   */
+  export function isCopyrightPair<P>(pair: Pair<P>): pair is Copyright<P> extends Pair<P> ? Copyright<P> : never {
+    const [k, v] = pair;
+    return k === 'copyright' && typeof v === 'string' && pair.length === 2;
+  }
+  export function isPairs<P>(pairArray: Pair<P>[]): pairArray is BasePair<P> extends typeof pairArray ? BasePair<P> : never {
+    let bool = [false, false, false] as [boolean, boolean, boolean];
+    const boolTypes = ['"name" | "file"', 'version', 'description'] as const;
+    pairArray.forEach((pair: Pair<P>) => {
+      if (bool[0] === false && pair[0] === 'name') bool[0] = isNamePair(pair as Pair<P>);
+      if (bool[0] === false && pair[0] === 'file') bool[0] = isFilePair(pair as Pair<P>);
+      if (pair[0] === 'version') bool[1] = isVersionPair(pair as Pair<P>);
+      if (pair[0] === 'description') bool[2] = isDescriptionPair(pair as Pair<P>);
+    });
+    if (bool.includes(false)) throw new Error('Missing a required key-value pair.', {
+      cause: `Missing Kind: ${boolTypes[bool.indexOf(false)]}`,
+    })
+    return pairArray.every((pair): pair is MetaPair<P> extends Pair<P> ? MetaPair<P> : never => isSinglePair(pair as Pair<P>)) && bool.every((b) => b === true);
+  }
 }
 
-
-export const { isAlphaNumeric, joinArray, makeTuple, removeChar, split, add, tupleHasProperty, createCallback, executeCallback, addition, subtraction } = Util;
+export const { isAlphaNumeric, joinArray, makeTuple, removeChar, split, add, tupleHasProperty, createCallback, executeCallback, addition, subtraction, addition100, subtraction100 } = Util;
 
 import AddOneSm = Util.AddOneSm;
 import AddTenHelper = Util.AddTenHelper;
@@ -454,38 +696,48 @@ import ValueOf = Util.ValueOf;
 import RecursiveArray = Util.RecursiveArray;
 import RecursiveObject = Util.RecursiveObject;
 import ObjectHasProperty = Util.ObjectHasProperty;
-import NumArray = Util.NumArray;
-import HandleMath = Util.HandleMath;
+// import NumArray = Util.NumArray;
+// import HandleMath = Util.HandleMath;
 import OneThousand = Util.OneThousand;
 import HundredArray = Util.HundredArray;
 import BelowOneHundred = Util.BelowOneHundred;
 import TenArray = Util.TenArray;
 import BelowTen = Util.BelowTen;
-import Addition = Util.Addition;
-import Subtraction = Util.Subtraction;
 import MetaConfig = Metadata.Config;
-import MetaPairs = Metadata.KeyValuePairs;
-import MetaTuple = Metadata.Tuple;
-import MetaAuthor = Metadata.Author;
-import MetaDescription = Metadata.Description;
-import MetaVersion = Metadata.Version;
-import MetaFile = Metadata.File;
-import MetaName = Metadata.Name;
-import MetaCopyright = Metadata.Copyright;
+// import MetaPairs = Metadata.KeyValuePairs;
+// import MetaTuple = Metadata.Tuple;
+import MetaAuthorPair = Metadata.Author;
+import MetaDescriptionPair = Metadata.Description;
+import MetaVersionPair = Metadata.Version;
+import MetaFilePair = Metadata.File;
+import MetaNamePair = Metadata.Name;
+import MetaCopyrightPair = Metadata.Copyright;
+import OneHundred = Util.OneHundred;
+import Fifty = Util.Fifty;
+import Fifteen = Util.Fifteen;
+import Add100 = Util.Add100;
+import Subtract100 = Util.Subtract100;
+import Reset = Util.Reset;
+import Subtract50 = Util.Subtract50;
+import Add50 = Util.Add50;
+
 
 
 export type {
   MetaConfig,
-  MetaTuple,
-  MetaCopyright,
-  MetaAuthor,
-  MetaDescription,
-  MetaVersion,
-  MetaFile,
-  MetaName,
-  MetaPairs,
-  Metadata,
-  Util,
+  OneHundred,
+  Add50,
+  Subtract50,
+  Fifty,
+  Fifteen,
+  Add100,
+  Subtract100,
+  MetaCopyrightPair,
+  MetaAuthorPair,
+  MetaDescriptionPair,
+  MetaVersionPair,
+  MetaFilePair,
+  MetaNamePair,
   OneThousand,
   HundredArray,
   BelowOneHundred,
@@ -493,7 +745,6 @@ export type {
   BelowTen,
   Addition,
   Subtraction,
-  HandleMath,
   AddOneSm,
   AddTenHelper,
   AdditionHelper,
@@ -540,7 +791,6 @@ export type {
   ValueOf,
   RecursiveArray,
   RecursiveObject,
-  NumArray
 };
 
 export default Util;
