@@ -1,10 +1,33 @@
+/*
+ *   Copyright (c) 2024 Matthew Allen Rackley
+ *   All rights reserved.
+
+ *   Permission is hereby granted, free of charge, to any person obtaining a copy
+ *   of this software and associated documentation files (the "Software"), to deal
+ *   in the Software without restriction, including without limitation the rights
+ *   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ *   copies of the Software, and to permit persons to whom the Software is
+ *   furnished to do so, subject to the following conditions:
+
+ *   The above copyright notice and this permission notice shall be included in all
+ *   copies or substantial portions of the Software.
+
+ *   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ *   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ *   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ *   SOFTWARE.
+ */
+
 /**
  * @file tupleType.ts
  * @description
  * @author Matthew Allen Rackley
  * @copyright [Matthew Rackley's Github](https://www.github.com/matthewrackley "Matthew Rackley on github.com")
  */
-import { Subtraction, Fifteen, Fifty, OneHundred } from './utilityTypes';
+import { Subtract, Fifteen, Fifty, OneHundred } from './utilityTypes';
 namespace Util {
   export type Tupleize<T extends readonly any[]> = { -readonly [K in keyof T]: T[K] };
   export type Tupler<T extends any[]> = T extends [...infer F, infer L] ? [...F, L] : never;
@@ -193,16 +216,16 @@ namespace Util {
   function objectt<T extends Literal<T>>(o: T) {
     return o;
   }
-  type GetNum<T extends Fifteen = 10> = Subtraction<T>;
+  type GetNum<T extends Fifteen = 10> = Subtract<15, T>;
   function getNum<T extends Fifteen>(num: T) {
-    return num - 1 as Subtraction<T>;
+    return num - 1 as Subtract<T>;
   };
   const val = getNum(10)
   const valuee = objectt({ cars: { toyota: { camry: { year: 2021, color: 'blue' } } } });
 
 
-  export type Literals<T = any, Depth extends Fifteen = 15> = (string | number | symbol | boolean | object | NestedObject<T, Subtraction<Depth>> | [Literals<T, Subtraction<Depth>>, ...Literals<T, Subtraction<Depth>>[]]) |
-  [(string | number | symbol | boolean | object | NestedObject<T, Subtraction<Depth>> | Literals<T, Subtraction<Depth>>), ...(string | number | symbol | boolean | object | NestedObject<T, Subtraction<Depth>> | Literals<T, Subtraction<Depth>>)[]];
+  export type Literals<T = any, Depth extends Fifteen | 0 = 15> = (string | number | symbol | boolean | object | NestedObject<T, Subtract<Depth>> | [Literals<T, Subtract<Depth>>, ...Literals<T, Subtract<Depth>>[]]) |
+  [(string | number | symbol | boolean | object | NestedObject<T, Subtract<Depth>> | Literals<T, Subtract<Depth>>), ...(string | number | symbol | boolean | object | NestedObject<T, Subtract<Depth>> | Literals<T, Subtract<Depth>>)[]];
 
   export type TupleDescriptor<T, D extends boolean = true> = {
     configurable: D extends false ? boolean : false;
@@ -268,10 +291,6 @@ namespace Util {
   export type ObjectWithDepth<T extends {} = {}, Depth extends number = 5> = {//@ts-ignore
     [K in keyof T]: Depth extends 0 ? unknown : ObjectWithDepth<T[K] extends Literal<T[K]> ? Literal<T[K]> : never, Subtract<Depth, 1>>;
   };
-  function objecttt<T extends Literal<T>>(param: ObjectWithDepth<T>): ObjectWithDepth<T> {
-    return param;
-  }
-  const vall = objecttt({ balloons: 'cars', cars: { balloons: 'cars' } });
   /**
    * @type {NestedObject<T>} - Creates a nested object type from a tuple.
    * @param {T} T - The tuple to create an object from.
@@ -280,7 +299,7 @@ namespace Util {
    * - Helper type
    * - Parameter type
    */
-  export type NestedObject<T, Depth extends number = 15> = { [K in keyof T]: T[K] extends object ? Depth extends 0 ? Literals<T[K], Depth> : NestedObject<T[K], Subtract<Depth, 1>> : T[K] };
+  export type NestedObject<T, Depth extends number = 15> = { [K in keyof T]: T[K] extends object ? Depth extends 0 ? Literals<T[K], 0> : NestedObject<T[K], Subtract<Depth>> : T[K] };
   /**
    * @type {NonArrayLiteral<T>} - Creates a literal type for anything besides a tuple.
    * @param {T} T - The tuple to create a literal type from.
@@ -288,7 +307,7 @@ namespace Util {
    * - Helper type
    * - Parameter type
    */
-  export type NonArrayLiteral<T, Depth extends number = 15> = { [K in keyof T]: T[K] extends (Literals<T, Subtract<Depth, 1>> | Literals<T, Subtract<Depth, 1>>[]) ? (Literals<T, Subtract<Depth, 1>> | Literals<T, Subtract<Depth, 1>>[]) : Tuple<T, Subtract<Depth, 1>> };
+  export type NonArrayLiteral<T, Depth extends number = 15> = { [K in keyof T]: T[K] extends (Literals<T, Subtract<Depth>> | Literals<T, Subtract<Depth>>[]) ? (Literals<T, Subtract<Depth>> | Literals<T, Subtract<Depth>>[]) : Tuple<T, Subtract<Depth>> };
   /**
    * @type {Tuple<T>} - Creates a tuple type when used in a rest parameter.
    * @param {T} T - The tuple to create a tuple type from.
@@ -297,12 +316,12 @@ namespace Util {
    * - Helper type
    * - Parameter type
    */
-  export type Tuple<T = any, Depth extends number = 15> = [(Literals<T, Subtract<Depth, 1>> | NonArrayLiteral<T, Subtract<Depth, 1>> | TupleObject<T, Subtract<Depth, 1>>), ...(Literals<T, Subtract<Depth, 1>> | NonArrayLiteral<T, Subtract<Depth, 1>> | TupleObject<T, Subtract<Depth, 1>>)[]];
+  export type Tuple<T = any, Depth extends number = 15> = [(Literals<T, Subtract<Depth>> | NonArrayLiteral<T, Subtract<Depth>> | TupleObject<T, Subtract<Depth>>), ...(Literals<T, Subtract<Depth>> | NonArrayLiteral<T, Subtract<Depth>> | TupleObject<T, Subtract<Depth>>)[]];
 
   function getObject<T extends Tuple<T>>(...o: T) {
     return o;
   }
-  const obj = getObject({ cars: { toyota: { camry: { year: 2021, color: 'blue' } } } });
+  const vex = getObject({ cars: { toyota: { camry: { year: 2021, color: 'blue' } } } });
   /**
    * @type {Literal<T>} - Creates a literal type from any possible type of Literal, used as a parameter type.
    * @param {T} T - The type to create a literal type from.
@@ -311,7 +330,7 @@ namespace Util {
    * - Parameter type
    * - General use Literal
    */
-  export type Literal<T, Depth extends number = 15> = [(Literals<T, Subtract<Depth, 1>> | TupleObject<T, Subtract<Depth, 1>>), ...(Literals<T, Subtract<Depth, 1>> | TupleObject<T, Subtract<Depth, 1>>)[]] | NonArrayLiteral<T, Subtract<Depth, 1>>;
+  export type Literal<T, Depth extends number = 15> = [(Literals<T, Subtract<Depth>> | TupleObject<T, Subtract<Depth>>), ...(Literals<T, Subtract<Depth>> | TupleObject<T, Subtract<Depth>>)[]] | NonArrayLiteral<T, Subtract<Depth>>;
 
   export function isDescriptorMap<O extends { [K in keyof O]: O[K] }>(o: TupleDescriptorMap<O>): o is TupleDescriptorMap<O> {
     const keys = Object.keys(o) as (keyof TupleDescriptorMap<O>)[];

@@ -8,8 +8,7 @@ import * as React from 'react';
 import ReactDOM from 'react-dom/client';
 
 import App from './App';
-
-const root = ReactDOM.createRoot(document.getElementById('root'));
+const root = ReactDOM.createRoot(document.getElementById('root') || document.body.appendChild(document.createElement('div')));
 document.addEventListener('DOMContentLoaded', () => {
-  root.render(React.createElement(App,));
+  root.render(React.createElement(App));
 });

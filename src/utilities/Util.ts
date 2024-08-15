@@ -1,4 +1,4 @@
-import { AddOne, Alphabet, UnionFromArray } from '../types/utilityTypes';
+import { AddOneSm, Alphabet, UnionFromArray } from '../types/utilityTypes';
 /**
  *   Copyright (c) 2023 Matthew Allen Rackley
  *   All rights reserved.
@@ -253,13 +253,12 @@ type HasChild<T, K extends T[keyof T]> = K extends T ? T : never;
   >(o: O, selectedValue: Findable = undefined as Findable):  Findable extends undefined ? InvertedObject<O> : InvertedObject<O, Findable> {
     var invObj = {} as InvertedObject<O>;
     let result: any;
-    for (const key in o) {
-      if (o.hasOwnProperty(key)) {
-        const valuesArray = o[key];
-        for (const value of valuesArray) {
+    for (const k in o) {
+      if (o.hasOwnProperty(k)) {
+        for (const v of o[k]) {
           invObj = {
             ...invObj,
-            [value]: key as keyof O,
+            [v]: k as keyof O,
           } as typeof invObj;
         }
       }
@@ -276,6 +275,7 @@ type HasChild<T, K extends T[keyof T]> = K extends T ? T : never;
     }
     return result as Findable extends undefined ? InvertedObject<O> : InvertedObject<O, Findable>;
   }
+
   export type UppercaseOnly<T extends string> = T extends `${infer U}${infer R}` ? U extends Uppercase<U> ? R extends UppercaseOnly<R> ? `${U}${R}` : never : never : never;
   export type LowercaseOnly<T extends string> = T extends `${infer U}${infer R}` ? U extends Lowercase<U> ? R extends LowercaseOnly<R> ? `${U}${R}` : never : never : never;
   export function isString<

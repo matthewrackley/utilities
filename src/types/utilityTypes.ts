@@ -1,10 +1,33 @@
+/*
+ *   Copyright (c) 2024 Matthew Allen Rackley
+ *   All rights reserved.
+
+ *   Permission is hereby granted, free of charge, to any person obtaining a copy
+ *   of this software and associated documentation files (the "Software"), to deal
+ *   in the Software without restriction, including without limitation the rights
+ *   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ *   copies of the Software, and to permit persons to whom the Software is
+ *   furnished to do so, subject to the following conditions:
+
+ *   The above copyright notice and this permission notice shall be included in all
+ *   copies or substantial portions of the Software.
+
+ *   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ *   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ *   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ *   SOFTWARE.
+ */
+
 /**
  * @file utilityTypes.ts
  * @description
  * @author Matthew Allen Rackley
  * @copyright [Matthew Rackley's Github](https://www.github.com/matthewrackley "Matthew Rackley on github.com")
  */
-namespace Util {
+export namespace Util {
   export type LiteralTypes = (string | number | symbol | boolean | object | [LiteralTypes, ...LiteralTypes[]]) |
   [(string | number | symbol | boolean | object | LiteralTypes), ...(string | number | symbol | boolean | object | LiteralTypes)[]];
   export type LiteralStrings = (string | number | boolean | null);
@@ -120,7 +143,7 @@ namespace Util {
     [K in keyof T]: Depth extends 0
     ? T[K]
     : T[K] extends object
-    ? FilterNeverWithDepth<T[K], Subtract<Depth, 1>>
+    ? FilterNeverWithDepth<T[K], Subtract<Depth>>
     : T[K] extends never
     ? never
     : T[K];
@@ -185,22 +208,37 @@ namespace Util {
       : never
       : never;
   }
-  export type AddLater<N extends number = 99> = N extends number ? AddOne<N> : never;
+  export type AddLater<N extends number = 99> = N extends number ? AddOneSm<N> : never;
 
-  type Add<
-    A extends number,
-    B extends number
-  > = `${A}` extends infer TA
-    ? `${B}` extends infer TB
-    ? `${A extends 0 ? '' : A}${B extends 0 ? '' : B}` extends infer R
-    ? R extends ''
-    ? 0
-    : ParseInt<R>
+  export type Add<A extends number> = A extends infer N extends number
+    ? `${N}` extends `${infer N3 extends 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8}`
+      ? ParseInt<`${Util.SimpleMath<N3>}`>
+    : `${N}` extends `${infer N3 extends 9}`
+      ? 10
+    : `${N}` extends `${infer N3 extends Util.BelowTen}${infer N2 extends 0 | Util.BelowTen}`
+      ? `${N3}${N2}` extends `${99}`
+        ? 100
+      : ParseInt<`${N2 extends 9 ? Util.SimpleMath<N3> : N3}${Util.SimpleMath<N2>}`>
+    : `${N}` extends `${infer N3 extends Util.BelowTen}${infer N2 extends 0 | Util.BelowTen}${infer N1 extends 0 | Util.BelowTen}`
+      ? ParseInt<`${N1 extends 9 ? N2 extends 9 ? Util.SimpleMath<N3> : N3 : N3}${N1 extends 9 ? Util.SimpleMath<N2> : N2}${Util.SimpleMath<N1>}`>
     : never
+  : never;
+
+  export type Subtract<A extends number> = A extends infer N extends number
+    ? `${N}` extends `${infer N3 extends 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9}`
+      ? ParseInt<`${Util.SimpleMath<N3, '-'>}`>
+    : `${N}` extends `${infer N3 extends 1}`
+      ? 0
+    : `${N}` extends `${infer N3 extends Util.BelowTen}${infer N2 extends 0 | Util.BelowTen}`
+      ? `${N3}${N2}` extends `${10}`
+        ? 9
+      : ParseInt<`${N2 extends 0 ? Util.SimpleMath<N3, '-'> : N3}${Util.SimpleMath<N2, '-'>}`>
+    : `${N}` extends `${infer N3 extends Util.BelowTen}${infer N2 extends 0 | Util.BelowTen}${infer N1 extends 0 | Util.BelowTen}`
+      ? `${N3}${N2}${N1}` extends `${100}`
+        ? 99
+      : ParseInt<`${N1 extends 0 ? N2 extends 0 ? Util.SimpleMath<N3, '-'> : N3 : N3}${N1 extends 0 ? Util.SimpleMath<N2, '-'> : N2}${Util.SimpleMath<N1, '-'>}`>
     : never
-    : never;
-
-
+  : never;
 
 
   export type Callback<T extends any[]> = (...args: T) => void;
@@ -355,8 +393,6 @@ namespace Util {
   };
   //type Obj<T extends { [K in Key]: T[K] } = any, Key extends keyof T = keyof T> = T extends { [K in keyof T]: T[K] } ? T : never;
 
-  export type Subtract<T extends number, D extends number> =
-    [...Array<T>, 0][D] extends infer R ? R extends number ? R : never : never;
 
   export type RecursiveArray<A extends [...any[]] = [...any[]]> = {
     [K in keyof A]: A[K];
@@ -509,6 +545,7 @@ export namespace Metadata {
     : never
   : never;
 
+  export type CombineArrays<T extends any[], U extends any[]> = [...T, ...U];
   /**
    * @function makeBasePair - Creates a base pair from key-value pairs.
    * @type {MakeBasePair} BasePair - An array of key-value pairs with optional __type properties.
@@ -720,6 +757,7 @@ import Subtract100 = Util.Subtract100;
 import Reset = Util.Reset;
 import Subtract50 = Util.Subtract50;
 import Add50 = Util.Add50;
+import Add = Util.Add;
 
 
 
@@ -743,8 +781,8 @@ export type {
   BelowOneHundred,
   TenArray,
   BelowTen,
-  Addition,
-  Subtraction,
+  Add,
+  Subtract,
   AddOneSm,
   AddTenHelper,
   AdditionHelper,
@@ -782,7 +820,6 @@ export type {
   SplitString,
   StringToArray,
   StringToNumber,
-  Subtract,
   TupleProperty,
   TupleHasProperty,
   TypeParameter,

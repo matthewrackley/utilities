@@ -7,7 +7,7 @@
 import { Email, url } from "./specializedTypes.ts";
 import Util from './utilityTypes';
 export type EmailTypeGuard = (email: Email) => email is Email;
-export declare const isValidEmail: (email: Email) => email is `${string}@${string}.${string}`;
+export declare const isValidEmail: (email: Email) => email is Email;
 export type TypeOf = "string" | "number" | "bigint" | "boolean" | "symbol" | "undefined" | "object" | "function";
 export type Shape<TO = undefined> = {
     [key: PropertyKey]: TypeOf | TO;

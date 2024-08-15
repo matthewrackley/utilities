@@ -25,13 +25,6 @@ declare module 'react' {
   }
   type ComponentCFC<P = {}, S = {}> = React.ComponentClass<P, S> | React.FunctionComponent<P>;
   type Hook<T extends T[number][]> = (...args: [...params: T]) => any;
-  type HandleSelect = (event: React.ChangeEvent<HTMLSelectElement>) => void;
-  type HandleInput = (event: React.ChangeEvent<HTMLInputElement>) => void;
-  type HandleSubmit = (event: React.FormEvent<HTMLFormElement>) => void;
-  type HandleClick = (event: React.MouseEvent<HTMLButtonElement>) => void;
-  type HandleHover = (event: React.MouseEvent<HTMLDivElement>) => void;
-  type HandleFocus = (event: React.FocusEvent<HTMLInputElement>) => void;
-  type HandleKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => void;
   type CSSSize = `${number}%` | `${number}px` | `${number}em` | `${number}rem` | `${number}vh` | `${number}vw` | `${number}vmin` | `${number}vmax` | `${number}ch` | `${number}ex` | `${number}cm` | `${number}mm` | `${number}in` | `${number}pt` | `${number}pc` | `${number}px` | `${number}mm` | `${number}cm` | `${number}in` | `${number}px` | `${number}pt` | `${number}pc` | `${number}em` | `${number}ex` | `${number}ch` | `${number}rem` | `${number}vw` | `${number}vh` | `${number}vmin` | `${number}vmax`
 }
 export {};

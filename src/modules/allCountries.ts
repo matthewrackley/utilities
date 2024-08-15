@@ -462,7 +462,7 @@ Countries[Symbol.iterator] = function* () {
       throw new Error(`Invalid region code ${regionCode}`);
     }
   };
-const USA = Countries('US')
+
 type C<R extends RegionCode> = HasProperty<R, keyof CountryPrototype<R>>;
 type Testes = Country<'AF'>;
 /**

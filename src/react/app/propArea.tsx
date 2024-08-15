@@ -6,18 +6,20 @@
  */
 
 import React from 'react';
-import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 
-import FileList from './fileList';
+import FilesList from './filesList';
 import FileViewer from './fileViewer';
 import ResizeArea from './resizeArea';
+import { ModuleProvider } from '@context/moduleContext';
+export const PropArea: React.FC<{}> = (props) => {
 
-export const PropArea: React.FC = () => {
   return (
     <div className="prop-area">
       <h1 className="prop-area-header">Prop Area</h1>
-      <ResizeArea />
-      <FileList />
+      <ModuleProvider>
+        <ResizeArea shape={'square'} data-count={0} parentRef={parentRef} childRef={childRef} />
+        <FilesList />
+      </ModuleProvider>
     </div>
   );
 }

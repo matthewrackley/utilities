@@ -11,12 +11,12 @@
  */
 
 import * as React from 'react';
-import { Link, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import styled, { createGlobalStyle } from 'styled-components';
-
+import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
+import { ThemeProvider, ThemeContext } from 'styled-components';
+import Theme from '@theme';
 import { PropArea } from '@app/propArea';
-
-import PhoneNumberInput from './components/headless/phoneNumberInput';
+import { ModuleProvider } from '@context/moduleContext';
 
 const GlobalStyle = createGlobalStyle`
 :root {
@@ -146,20 +146,36 @@ body {
 .footer { grid-area: footer; }
 
 `;
-
+const NavButton = styled(Link)`
+  display: block;
+  margin-bottom: 10px;
+  padding: 10px 15px;
+  text-decoration: none;
+  color: #495057;
+  background-color: #e9ecef;
+  border-radius: 4px;
+  &:hover {
+    background-color: #dee2e6;
+  }
+`;
 
 export const App: React.FC = () => {
+  const invertTheme = ({ dark, light }) => ({
+    dark: light,
+    light: dark
+  });
   return (
     <>
-      <GlobalStyle />
-      <Router>
-        <div className="container">
-          <div className="header"></div>
-          <div className="nav-col">
-            <div className="btn-col"></div>
-          </div>
-          <PropArea />
-          {/* <div className="prop-area">
+      <ThemeProvider theme={ { ...Theme } } >
+        <GlobalStyle />
+        <Router>
+          <div className="container">
+            <div className="header"></div>
+            <div className="nav-col">
+              <div className="btn-col"></div>
+            </div>
+            <PropArea/>
+            {/* <div className="prop-area">
             <h1 className="prop-area-header"></h1>
             <div className="resize-area">
               <div className="prop-box">
@@ -170,22 +186,24 @@ export const App: React.FC = () => {
                 </Routes>
                 <PhoneNumberInput />
               </div>
-            </div>
+            </div>*/}
             <div className="prop-select">
               <div className="prop-select-headers"></div>
-              <div className="prop-list"></div>
+              <div className="prop-list">
+              </div>
               <div className="prop-categories"></div>
             </div>
-          </div> */}
-          <div className="btm-util">
-            <div className="param-proto"></div>
-            <div className="theming"></div>
-          </div>
-          <div className="footer"></div>
-        </div >
-      </Router >
+
+            <div className="btm-util">
+              <div className="param-proto"></div>
+              <div className="theming"></div>
+            </div>
+            <div className="footer"></div>
+          </div >
+        </Router>
+      </ThemeProvider>
     </>
   );
-}
+};
 
 export default App;

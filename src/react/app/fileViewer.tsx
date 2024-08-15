@@ -13,18 +13,23 @@ import { Route, Routes, useParams } from 'react-router-dom';
 import ResizeArea, { type SimpleCSSSize, type ChildProps, ParentSize } from './resizeArea';
 import DynamicLoader from './dynamicLoader';
 import { ErrorMessage } from 'formik';
-
+import PhoneNumberInput from '@components/headless/phoneNumberInput';
+import CountrySelector from '@components/headless/countrySelector';
+import { ModuleConsumer, ModuleContext, useModuleContext } from '@context/moduleContext';
+import { Bounds, Percentage, PercentOfParent } from './types/RndBnd.types';
+import { isPercent } from './draggable';
+import Lock, { HandleLock, useLock } from '@assets/lock';
 
 
 interface PositionMap {
-  x: [0 | number, number, number, number, number, number, number, number];
-  y: [0 | number, number, number, number, number, number, number, number];
+  x: [number, number, number, number, number, number, number, 0 | number, number, number, number, number, number, number, number];
+  y: [number, number, number, number, number, number, number, 0 | number, number, number, number, number, number, number, number];
 }
 interface Size {
   width: number;
   height: number;
 }
-type Range = [0, number, number, number, number, number, number, number];
+type Range = [number, number, number, number, number, number, number, 0, number, number, number, number, number, number, number];
 type SizeRange = {
   readonly width: Range;
   readonly height: Range;
@@ -36,11 +41,6 @@ export interface FileData {
   directory: string;
   files: FileList;
 }
-interface ParentData {
-  height: number;
-  width: number;
-  ref: React.RefObject<HTMLDivElement>;
-}
 interface Size {
   width: number;
   height: number;
@@ -51,20 +51,34 @@ interface DraggableState {
   x: number;
   y: number;
   loading: boolean;
-  filedata: FileData;
+  locked: boolean;
   errorMessage: string;
-  components: React.ElementType<any>[];
+  components: React.ComponentType<any>[];
   adjustingWidth: boolean;
   adjustingHeight: boolean;
   lastMouseX: number;
   isDragging: boolean;
   lastMouseY: number;
 }
+interface Percents {
+  width: Percentage;
+  height: Percentage;
+}
 type XandY = 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight';
 type XorY = 'top' | 'bottom' | 'left' | 'right';
-interface Props<T = {}> {
+type Props<T extends object = {}> = {
   parent: ParentData;
-  xProps?: T;
+  locked: boolean;
+  minSize?: Percents | 'fit-content';
+  maxSize?: Percents | 'fill-parent';
+  handleLock: HandleLock;
+  defaultSize?: Percents | Size;
+} & T;
+
+interface ParentData {
+  bounds: Bounds;
+  size: Size;
+  ref: HTMLDivElement | React.RefObject<HTMLDivElement>;
 }
 class FileViewer<P extends object> extends React.Component<Props<P>, DraggableState> {
 
@@ -76,34 +90,57 @@ class FileViewer<P extends object> extends React.Component<Props<P>, DraggableSt
       const mid = Math.floor((low + high) / 2);
       const midVal = range[mid];
 
-      if (midVal === size || (size > range[mid - 1] && size < midVal)) {
-        return mid;
+      if (midVal === size) {
+        return midVal;
       } else if (size < midVal) {
         high = mid - 1;
       } else {
         low = mid + 1;
       }
     }
-
-    return -1; // Return -1 if no range is found, though this should not happen in your case
+    if (low >= range.length) return range[high];
+    if (high < 0) return range[low];
+    return (Math.abs(range[low] - size) < Math.abs(range[high] - size)) ? range[low] : range[high];
   };
   state: DraggableState;
   fv: FileViewer<P>;
   rnd: Rnd;
   parent: ParentData;
+  minSize: Percents | 'fit-content';
+  maxSize: Percents | 'fill-parent';
+  locked: boolean;
+  setLocked: React.Dispatch<React.SetStateAction<boolean>> = () => {
+    return this.setState((prevState) =>({ ...prevState, locked: !this.state.locked }));
+  }
   constructor(props: Props<P>) {
     super(props);
+    const [locked, handleLock] = useLock(props.locked, this.setLocked);
     this.parent = props.parent;
+    this.locked = locked;
+    this.handleLocked = handleLock;
+    this.minSize = props.minSize || { width: 0.225, height: 0.225 };
+    this.maxSize = props.maxSize || 'fill-parent';
+    const def = (props.defaultSize || { width: 0.55, height: 0.55 }) as Size | { width: Percentage; height: Percentage; };
+    let defData = {} as Size & Position;
+    if (isPercent(def.width) && isPercent(def.height)) {
+      defData = this.setDefault(def, props.parent);
+    } else {
+      defData = {
+        ...def,
+        x: (props.parent.size.width - def.width) / 2,
+        y: (props.parent.size.height - def.height) / 2
+      };
+    }
     console.log('props', props);
     this.state = {
-      width: 0,
-      height: 0,
-      x: 0,
-      y: 0,
+      width: defData.width,
+      height: defData.height,
+      x: defData.x,
+      y: defData.y,
       loading: true,
-      filedata: { directory: '', files: [] },
+      locked: props.locked,
       errorMessage: '',
-      components: [] as React.ElementType<P>[],
+      components: [] as React.ComponentType<P>[],
       adjustingWidth: false,
       adjustingHeight: false,
       lastMouseX: 0,
@@ -112,23 +149,23 @@ class FileViewer<P extends object> extends React.Component<Props<P>, DraggableSt
     };
     this.fv = this;
     this.rnd = this.ref.current!;
-    this.setState({ ...this.state })
-
-
   }
-  stateDefault = {
-    width: this.props.parent.width * 0.55,
-    height: this.props.parent.height * 0.55,
-    x: (this.props.parent.width - (this.props.parent.width * 0.55)) / 2,
-    y: (this.props.parent.height - (this.props.parent.height * 0.55)) / 2,
-  }
+  setDefault = (percentages: { width: Percentage, height: Percentage; }, parentData: ParentData) => {
+    const { width, height } = percentages;
+    return {
+      width: parentData.size.width * width,
+      height: parentData.size.height * height,
+      x: (parentData.size.width - (parentData.size.width * width)) / 2,
+      y: (parentData.size.height - (parentData.size.height * height)) / 2,
+    }
+  };
   range: SizeRange = {
-    width: [0, this.props.parent.width * .1, this.props.parent.width * .225, this.props.parent.width * .375, this.props.parent.width * .625, this.props.parent.width * .775, this.props.parent.width * .9, this.props.parent.width],
-    height: [0, this.props.parent.height * .1, this.props.parent.height * .225, this.props.parent.height * .375, this.props.parent.height * .625, this.props.parent.height * .775, this.props.parent.height * .9, this.props.parent.height]
+    width: [-this.props.parent.size.width, -this.props.parent.size.width * 0.9, -this.props.parent.size.width * 0.775, -this.props.parent.size.width * 0.625, -this.props.parent.size.width * 0.375, -this.props.parent.size.width * 0.225, -this.props.parent.size.width * 0.1, 0, this.props.parent.size.width * .1, this.props.parent.size.width * .225, this.props.parent.size.width * .375, this.props.parent.size.width * .625, this.props.parent.size.width * .775, this.props.parent.size.width * .9, this.props.parent.size.width],
+    height: [-this.props.parent.size.height, -this.props.parent.size.height * 0.9, -this.props.parent.size.height * 0.775, -this.props.parent.size.height * 0.625, -this.props.parent.size.height * 0.375, -this.props.parent.size.height * 0.225, -this.props.parent.size.height * 0.1, 0, this.props.parent.size.height * .1, this.props.parent.size.height * .225, this.props.parent.size.height * .375, this.props.parent.size.height * .625, this.props.parent.size.height * .775, this.props.parent.size.height * .9, this.props.parent.size.height]
   }
   adjustmentRange: SizeRange = {
-    width: [0, this.props.parent.width * .08, this.props.parent.width * .200, this.props.parent.width * .335, this.props.parent.width * .685, this.props.parent.width * .8, this.props.parent.width * .925, this.props.parent.width],
-    height: [0, this.props.parent.height * .08, this.props.parent.height * .200, this.props.parent.height * .335, this.props.parent.height * .685, this.props.parent.height * .8, this.props.parent.height * .925, this.props.parent.height]
+    width: [-this.props.parent.size.width, -this.props.parent.size.width * 0.925, -this.props.parent.size.width * 0.8, -this.props.parent.size.width * 0.685, -this.props.parent.size.width * 0.335, -this.props.parent.size.width * 0.200, -this.props.parent.size.width * 0.08, 0, this.props.parent.size.width * .08, this.props.parent.size.width * .200, this.props.parent.size.width * .335, this.props.parent.size.width * .685, this.props.parent.size.width * .8, this.props.parent.size.width * .925, this.props.parent.size.width],
+    height: [-this.props.parent.size.height, -this.props.parent.size.height * 0.925, -this.props.parent.size.height * 0.8, -this.props.parent.size.height * 0.685, -this.props.parent.size.height * 0.335, -this.props.parent.size.height * 0.200, -this.props.parent.size.height * 0.08,0, this.props.parent.size.height * .08, this.props.parent.size.height * .200, this.props.parent.size.height * .335, this.props.parent.size.height * .685, this.props.parent.size.height * .8, this.props.parent.size.height * .925, this.props.parent.size.height]
   }
   snapToGrid(position: Position): Position {
     const xDiffs = this.range.width.map(point => Math.abs(point - position.x));
@@ -140,7 +177,19 @@ class FileViewer<P extends object> extends React.Component<Props<P>, DraggableSt
       y: this.range.height[yDiffs.indexOf(yClosest)],
     }
   }
-  getPosition(position: Position) {
+
+  private handleLocked: HandleLock;
+  adjustSize (size: Size): Size {
+    const xDiffs = this.range.width.map(point => Math.abs(point - size.width));
+    const yDiffs = this.range.height.map(point => Math.abs(point - size.height));
+    const xClosest = Math.min(...xDiffs);
+    const yClosest = Math.min(...yDiffs);
+    return {
+      width: this.range.width[xDiffs.indexOf(xClosest)],
+      height: this.range.height[yDiffs.indexOf(yClosest)],
+    }
+  }
+  getPosition(position: Position): Position {
     const xIndice = this.binarySearchRange(position.x, this.range.width);
     const yIndice = this.binarySearchRange(position.y, this.range.height);
     return {
@@ -178,14 +227,18 @@ class FileViewer<P extends object> extends React.Component<Props<P>, DraggableSt
   };
 
 
-
-  handleResize = (e, d: DraggableData) => {
-    const left = (this.parent.width - (this.parent.width * 0.55)) / 2;
-    const top = (this.parent.height - (this.parent.height * 0.55)) / 2;
-    const right = (this.parent.width - (this.parent.width * 0.55));
-    const bottom = (this.parent.height - (this.parent.height * 0.55));
+  shouldMove = (e: React.RefObject<HTMLDivElement>, d: DraggableData, parentData: ParentData) => {
+    if (!e.current) return;
+    e.current.offsetLeft + e.current.offsetWidth >=
+    const right = (this.parent.width - parseFloat(String(this.state.width))) / 2;
+  }
+  handleResize = (e: React.MouseEvent, d: DraggableData) => {
+    (e.target instanceof HTMLDivElement)
+    const { width, height } = this.parent.size;
+    const { left, right, top, bottom } = this.parent.bounds;
     let newWidth = parseFloat(String(this.state.width));
     let newHeight = parseFloat(String(this.state.height));
+    this.parent.ref.current?.left
     const minSize = {
       width: 0.225 * this.parent.width,
       height: 0.225 * this.parent.height,
@@ -479,6 +532,9 @@ class FileViewer<P extends object> extends React.Component<Props<P>, DraggableSt
       });
     };
     const onDragStop: RndDragCallback = (event: DraggableEvent, data: DraggableData) => {
+      if (event.target instanceof HTMLDivElement) {
+
+      }
       this.setState({
         ...this.snapToGrid({ x: data.x, y: data.y }),
       });
@@ -542,7 +598,6 @@ class FileViewer<P extends object> extends React.Component<Props<P>, DraggableSt
         height: ref.offsetHeight,
       });
     }
-
     return (
       <Rnd
         ref={ this.ref }
@@ -593,11 +648,7 @@ class FileViewer<P extends object> extends React.Component<Props<P>, DraggableSt
         }
         dragAxis='both'
       >
-        <Routes>
-          { this.state.filedata.files.map((file, index) => (
-            <Route path={ `/preview/${file}` } key={ index } element={ <DynamicLoader filename={ file } /> } />
-          )) }
-        </Routes>
+        <ModuleConsumer/>
       </Rnd>
     );
   }

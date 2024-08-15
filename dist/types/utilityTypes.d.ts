@@ -5,11 +5,18 @@
  * @copyright [Matthew Rackley's Github](https://www.github.com/matthewrackley "Matthew Rackley on github.com")
  */
 export declare namespace Util {
-    type LiteralTypes = (string | number | symbol | boolean) | [
-        (string | number | symbol | boolean),
-        ...(string | number | symbol | boolean)[]
+    type LiteralTypes = (string | number | symbol | boolean | object | [LiteralTypes, ...LiteralTypes[]]) | [
+        (string | number | symbol | boolean | object | LiteralTypes),
+        ...(string | number | symbol | boolean | object | LiteralTypes)[]
     ];
     type LiteralStrings = (string | number | boolean | null);
+    type LiteralTypesO<T = any> = (string | number | symbol | boolean | {
+        [K in keyof T]: T[K] extends LiteralTypesO<T[K]> ? T[K] : never;
+    }) | [(string | number | symbol | boolean | {
+        [K in keyof T]: T[K] extends LiteralTypesO<T[K]> ? T[K] : never;
+    })[], ...(string | number | symbol | boolean | {
+        [K in keyof T]: T[K] extends LiteralTypesO<T[K]> ? T[K] : never;
+    })[]];
     interface StringLike<N extends String['length']> extends String {
         readonly length: N;
     }
@@ -28,70 +35,6 @@ export declare namespace Util {
     };
     type GetProperty<T extends object, K extends keyof T> = T[K];
     type RemoveProperty<T extends object, K extends keyof T> = Omit<T, K>;
-    type Tupleize<T extends readonly any[]> = {
-        -readonly [K in keyof T]: T[K];
-    };
-    type Tupler<T extends any[]> = T extends [...infer F, infer L] ? [...F, L] : never;
-    type TupleLength<T extends readonly any[]> = T['length'];
-    type TupleHead<T extends readonly any[]> = T[0];
-    type TupleTail<T extends readonly any[]> = T[1];
-    type TupleLast<T extends readonly any[]> = T[TupleLength<T>];
-    type TuplePush<T extends readonly any[], V> = [...T, V];
-    type TuplePop<T extends readonly any[]> = TupleHead<T>;
-    type TupleShift<T extends readonly any[]> = TupleTail<T>;
-    type TupleUnshift<T extends readonly any[], V> = TuplePush<T, V>;
-    type TupleConcat<T extends readonly any[], U extends readonly any[]> = [...T, ...U];
-    type TuplePrepend<T extends readonly any[], U extends readonly any[]> = TupleConcat<U, T>;
-    type TupleGet<T extends readonly any[], I extends number> = T[I];
-    type TupleSet<T extends readonly any[], I extends number, V> = [...TupleHead<T>, V, ...TupleTail<T>];
-    type TupleRemove<T extends readonly any[], I extends number> = TupleConcat<TupleHead<T>, TupleTail<T>>;
-    type TupleRemoveAll<T extends readonly any[], U extends readonly any[]> = TupleConcat<TupleHead<T>, TupleTail<T>>;
-    type TupleReverse<T extends readonly any[]> = [...T];
-    type TupleReverseInPlace<T extends readonly any[]> = [...T];
-    type TupleSlice<T extends readonly any[], S extends number, E extends number> = [...T];
-    type TupleSplice<T extends readonly any[], S extends number, E extends number, U extends readonly any[]> = [...T];
-    type TupleSort<T extends readonly any[]> = [...T];
-    type TupleSortInPlace<T extends readonly any[]> = [...T];
-    type TupleFill<T extends readonly any[], V> = [...T];
-    type TupleFillBy<T extends readonly any[], V> = [...T];
-    type TupleFlat<T extends readonly T[number][]> = [...T];
-    type AppendToStringArray<Arr extends string[], T extends string[], NewArr extends [...Arr, ...T]> = NewArr;
-    type MakeTuple<T extends any extends Array<infer U extends string | number> ? U : never> = T extends infer L extends string | number ? Array<L> extends Array<[...infer U]> ? readonly [...U] : [...[T]] : never;
-    /**
-     * @type {Tupleizer} Tupleizer - Creates a literal tuple type.
-     * @param {[...T]} args - The arguments to create a tuple from.
-     * @returns {[...T]} The literal tuple.
-     * @description Generic Utility function that can easily create a
-     * type literal tuple type. This is useful for beginner JS developers
-     * who are used to using arrays as tuples, and want to use tuples in TS.
-     * @author Matthew Allen Rackley
-     * @copyright [Matthew Rackley's Github](https://www.github.com/matthewrackley "Matthew Rackley on github.com")
-     * @license MIT
-     */
-    type Tupleizer = typeof tupleizer;
-    /**
-     * @function tupleizer - Creates a literal tuple type.
-     * @template Key - The index of T. Defaults to keyof T.
-     * @param {T} args The arguments to create a tuple from.
-     * @returns {[...T]} The literal tuple.
-     * @description Generic Utility function that can easily create a
-     * type literal tuple type. This is useful for beginner JS developers
-     * who are used to using arrays as tuples, and want to use tuples in TS.
-     * @author Matthew Allen Rackley
-     * @copyright [Matthew Rackley's Github](https://www.github.com/matthewrackley "Matthew Rackley on github.com")
-     * @license MIT
-     */
-    function tupleizer<
-    /** @template {Key} -!- The index of T. */
-    Key extends keyof T extends number ? keyof T : never, T extends (LiteralTypes | // note: T[number] can be a string, symbol, number, or a tuple of the same
-    (keyof T extends number ? T[Key] extends object ? {
-        [K in keyof T[Key]]: T[Key][K] extends ({
-            [K2 in keyof T[Key][K]]: T[Key][K][K2];
-        } | LiteralTypes) ? T[keyof T] : never;
-    } : never : never) | // note: T[number] can be a recursive object
-    {
-        [K in keyof T as K extends number ? K : never]: T[K][keyof T[K]] extends LiteralTypes ? T[K][keyof T[K]] : never;
-    })[]>(...args: [...T]): [...T];
     type Interpolate<Segments extends any[]> = Segments extends [infer First, ...infer Rest] ? First extends string ? Rest extends string[] ? `${First}${Interpolate<Rest>}` : never : never : '';
     type InterpolateBySep<Segments extends any[], Separator extends string> = Segments extends [infer First, ...infer Rest] ? First extends string ? Rest extends any[] ? `${First}${Rest['length'] extends 0 ? '' : Separator}${InterpolateBySep<Rest, Separator>}` : never : never : '';
     type SeparatorInterpolation<Values extends string[], Separators extends string[], Previous extends string = ''> = Values extends [infer Current extends string, ...infer RemainingValues extends string[]] ? Separators extends [infer CurrentSeparator extends string, ...infer RemainingSeparators extends string[]] ? SeparatorInterpolation<RemainingValues, RemainingSeparators, `${Previous}${Current}${CurrentSeparator}`> : `${Previous}${Current}` : Previous;
@@ -145,7 +88,7 @@ export declare namespace Util {
         };
     };
     type FilterNeverWithDepth<T, Depth extends number> = {
-        [K in keyof T]: Depth extends 0 ? T[K] : T[K] extends object ? FilterNeverWithDepth<T[K], Subtract<Depth, 1>> : T[K] extends never ? never : T[K];
+        [K in keyof T]: Depth extends 0 ? T[K] : T[K] extends object ? FilterNeverWithDepth<T[K], Subtract<Depth>> : T[K] extends never ? never : T[K];
     };
     type CapitalizeStrings<T> = {
         [K in keyof T]: string;
@@ -167,7 +110,6 @@ export declare namespace Util {
         readonly length: T[number];
         [index: number]: T[number];
     }
-    const tupal: <T extends (string | number | symbol)[]>(...args: T) => T;
     type MultiCase<T extends string> = Uppercase<T> | Lowercase<T>;
     type AlphaNumeric<T extends string> = T extends `${infer F extends string}${infer R extends string}` ? (F extends AlphaNumericUnion ? `${F}${AlphaNumeric<R>}` : never) : T;
     function isAlphaNumeric<N extends string>(str: Util.AlphaNumeric<N>): str is Util.AlphaNumeric<N>;
@@ -185,25 +127,46 @@ export declare namespace Util {
     type StringToArray<S extends string, D extends string> = S extends '' ? [] : S extends `${infer F}${D}${infer R}` ? [F, ...StringToArray<R, D>] : [
         S
     ];
+    function add<N extends number>(num: N): typeof num extends infer N_1 extends number ? `${N_1}` extends `${infer N3 extends 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8}` ? ParseInt<`${Util.SimpleMath<N3>}`> : `${N_1}` extends `${infer N3 extends 9}` ? 10 : `${N_1}` extends `${infer N3 extends Util.BelowTen}${infer N2 extends 0 | Util.BelowTen}` ? `${N3}${N2}` extends `${99}` ? 100 : ParseInt<`${N2 extends 9 ? Util.SimpleMath<N3> : N3}${Util.SimpleMath<N2>}`> : `${N_1}` extends `${infer N3 extends Util.BelowTen}${infer N2_1 extends 0 | Util.BelowTen}${infer N1 extends 0 | Util.BelowTen}` ? ParseInt<`${N1 extends 9 ? N2_1 extends 9 ? Util.SimpleMath<N3> : N3 : N3}${N1 extends 9 ? Util.SimpleMath<N2_1> : N2_1}${Util.SimpleMath<N1>}`> : never : never;
+    type AddLater<N extends number = 99> = N extends number ? AddOneSm<N> : never;
+    type Add<A extends number> = A extends infer N extends number ? `${N}` extends `${infer N3 extends 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8}` ? ParseInt<`${Util.SimpleMath<N3>}`> : `${N}` extends `${infer N3 extends 9}` ? 10 : `${N}` extends `${infer N3 extends Util.BelowTen}${infer N2 extends 0 | Util.BelowTen}` ? `${N3}${N2}` extends `${99}` ? 100 : ParseInt<`${N2 extends 9 ? Util.SimpleMath<N3> : N3}${Util.SimpleMath<N2>}`> : `${N}` extends `${infer N3 extends Util.BelowTen}${infer N2 extends 0 | Util.BelowTen}${infer N1 extends 0 | Util.BelowTen}` ? ParseInt<`${N1 extends 9 ? N2 extends 9 ? Util.SimpleMath<N3> : N3 : N3}${N1 extends 9 ? Util.SimpleMath<N2> : N2}${Util.SimpleMath<N1>}`> : never : never;
+    type Subtract<A extends number> = A extends infer N extends number ? `${N}` extends `${infer N3 extends 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9}` ? ParseInt<`${Util.SimpleMath<N3, '-'>}`> : `${N}` extends `${infer N3 extends 1}` ? 0 : `${N}` extends `${infer N3 extends Util.BelowTen}${infer N2 extends 0 | Util.BelowTen}` ? `${N3}${N2}` extends `${10}` ? 9 : ParseInt<`${N2 extends 0 ? Util.SimpleMath<N3, '-'> : N3}${Util.SimpleMath<N2, '-'>}`> : `${N}` extends `${infer N3 extends Util.BelowTen}${infer N2 extends 0 | Util.BelowTen}${infer N1 extends 0 | Util.BelowTen}` ? `${N3}${N2}${N1}` extends `${100}` ? 99 : ParseInt<`${N1 extends 0 ? N2 extends 0 ? Util.SimpleMath<N3, '-'> : N3 : N3}${N1 extends 0 ? Util.SimpleMath<N2, '-'> : N2}${Util.SimpleMath<N1, '-'>}`> : never : never;
+    type Callback<T extends any[]> = (...args: T) => void;
+    function executeCallback<T extends any[]>(callback: Callback<T>, ...args: T): void;
+    function createCallback<T extends any[]>(callback: Callback<T>): Callback<T>;
+    type Func<T extends ((...args: Parameters<T>) => ReturnType<T>)> = (...args: Parameters<T>) => ReturnType<T>;
+    type CreateClosureStore = <BaseType>(base: BaseType) => ClosureStore<BaseType>;
+    type ClosureStore<BaseType> = <T extends [BaseType]>() => {
+        <F extends Func<F>>(fn: (...args: T) => ReturnType<F>, ...args: T): ReturnType<F>;
+    };
     type StringToNumber<S extends string> = S extends `${infer F extends number}${infer R}` ? F | StringToNumber<R> : never;
     type AdditionHelper = {
-        [K in BelowOneHundred as K extends 99 ? never : K]: HundredArray[K];
+        [K in BelowOneHundred as K extends 99 ? never : K]: Util.HundredArray[K];
     } & {
         0: 1;
         99: 0;
     };
+    type ParseInt<T> = T extends `${infer N extends number}` ? N : never;
     type ObjectHasProperty<Obj1, Obj2, Property extends keyof Obj1 | keyof Obj2 = keyof Obj1 | keyof Obj2> = Property extends keyof Obj1 ? Obj1[Property] : Property extends keyof Obj2 ? Obj2[Property] : never;
-    type AddTenHelper<Stop extends boolean = false> = {
-        [K in BelowTen as K extends 9 ? never : K]: TenArray[K];
+    type AddTenHelper<T extends '+' | '-' = '+'> = {
+        [K in Util.BelowTen]: K extends 9 ? T extends '-' ? 8 : 0 : TenArray<T>[K];
     } & {
-        [K in BelowTen as Stop extends false ? 9 : never]: 0;
-    } & {
-        0: 1;
+        0: T extends '-' ? 9 : 1;
     };
-    type AddTen<T, Stop extends boolean = false> = AddTenHelper<Stop>[T extends keyof AddTenHelper<Stop> ? T : never];
+    type SimpleMath<N extends number | '', T extends '+' | '-' = '+'> = AddTenHelper<T>[N extends keyof AddTenHelper<T> ? N : never];
     type AddOneSm<T> = AdditionHelper[T extends keyof AdditionHelper ? T : never];
-    type AddOne<T extends number> = T extends infer N extends number ? `${N}` extends `${infer N3 extends 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8}` ? `${AddTen<N3>}` : `${N}` extends `${infer N3 extends 9}` ? 10 : `${N}` extends `${infer N3 extends number}${infer N2 extends number}` ? `${N3}${N2}` extends `${99}` ? 100 : `${N2 extends 9 ? AddTen<N3> : N3}${AddTen<N2>}` : `${N}` extends `${infer N3 extends number}${infer N2 extends number}${infer N1 extends number}` ? `${N2 extends 9 ? AddTen<N3> : N3}${N1 extends 9 ? AddTen<N2> : N2}${AddTen<N1>}` : never : never;
-    type HundredArray = [
+    type OneHundred = Util.ParseInt<`${Util.BelowTen}${0 | Util.BelowTen}`> | 100 | Util.ParseInt<`${0 | Util.BelowTen}`>;
+    type Fifty = Util.ParseInt<`${1 | 2 | 3 | 4}${0 | Util.BelowTen}`> | 50 | Util.ParseInt<`${0 | Util.BelowTen}`>;
+    type Fifteen = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15;
+    type HandleMathFifties<N extends Util.Fifty, T extends '+' | '-' = '+'> = `${N}` extends `${infer N1 extends 0 | Util.BelowTen}` ? T extends '-' ? Util.ParseInt<`${N1 extends 0 ? N1 : Util.SimpleMath<N1, T>}`> : Util.ParseInt<`${N1 extends 9 ? 10 : Util.SimpleMath<N1, T>}`> : `${N}` extends `${infer N2 extends 1 | 2 | 3 | 4 | 5}${infer N1 extends 0 | Util.BelowTen}` ? T extends '-' ? Util.ParseInt<`${N1 extends 0 ? N2 extends 1 ? '' : Util.SimpleMath<N2, T> : N2}${Util.SimpleMath<N1, T>}`> : Util.ParseInt<`${N1 extends 9 ? N2 extends 4 | 5 ? 5 : Util.SimpleMath<N2, T> : N2}${N2 extends 5 ? 0 : Util.SimpleMath<N1, T>}`> : never;
+    type OneThousand = Util.ParseInt<`${Util.BelowTen}${0 | Util.BelowTen}`> | Util.ParseInt<`${Util.BelowTen}${0 | Util.BelowTen}${0 | Util.BelowTen}`> | Util.ParseInt<`${0 | Util.BelowTen}`>;
+    type Addition50<N extends Util.Fifty> = Util.HandleMathFifties<N, '+'>;
+    type Subtraction50<N extends Util.Fifty> = Util.HandleMathFifties<N, '-'>;
+    function addFifty<N extends Util.Fifty>(num: N): Util.Addition50<N>;
+    function subtractFifty<N extends Util.Fifty>(num: N): Util.Subtraction50<N>;
+    type HundredArray<T extends '+' | '-' = '+'> = T extends '-' ? [
+        0,
+        0,
         1,
         2,
         3,
@@ -303,31 +266,239 @@ export declare namespace Util {
         97,
         98,
         99
+    ] : [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        98,
+        99,
+        100,
+        100
     ];
-    type BelowOneHundred = HundredArray[number];
-    type TenArray = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-    type BelowTen = TenArray[number];
+    type FiftyArray<T extends '+' | '-' = '+'> = T extends '-' ? [
+        0,
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49
+    ] : [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        50
+    ];
+    type Add50<N extends Util.Fifty> = Util.FiftyArray[N];
+    type Subtract50<N extends Util.Fifty> = Util.FiftyArray<'-'>[N];
+    type Add100<N extends Util.OneHundred> = Util.HundredArray[N];
+    type Subtract100<N extends Util.OneHundred> = Util.HundredArray<'-'>[N];
+    type Reset = 0;
+    type BelowOneHundred = Util.HundredArray[number];
+    type TenArray<T extends '+' | '-' = '+'> = T extends '-' ? [9, 0, 1, 2, 3, 4, 5, 6, 7] : [1, 2, 3, 4, 5, 6, 7, 8, 9];
+    type BelowTen = TenArray<'+'>[number];
     type RecursiveObject<T> = {
         [K in keyof T]: T[K];
     };
     type ObjectWithDepth<T extends {} = {}, Depth extends number = 5> = {
         [K in keyof T]: Depth extends 0 ? unknown : ObjectWithDepth<T[K], Subtract<Depth, 1>>;
     };
-    type Subtract<T extends number, D extends number> = [
-        ...Array<T>,
-        0
-    ][D] extends infer R ? R extends number ? R : never : never;
     type RecursiveArray<A extends [...any[]] = [...any[]]> = {
         [K in keyof A]: A[K];
     };
     type Property<Obj extends {}> = keyof Obj;
-    type Tuple = Array<Tuple>;
     type Concurrent<Obj, R extends keyof Obj | Obj[keyof Obj] = keyof Obj> = {
         [K in keyof Obj as R extends keyof Obj ? R : K]: Obj[K] | R;
     };
     type ObjectFromUnion<O = {}> = <PKeys extends keyof O, PValues extends O[PKeys]>(keys: PKeys) => {
         [P in PKeys]: PValues;
     };
+    type Hook<T extends any[]> = (...params: T) => any;
     type TupleProperty<T extends [any, ...any[]]> = <V, N extends number>(index: N) => TupleHasProperty<V, T, typeof index>;
     type TupleHasProperty<V, T extends [any, ...any[]], N extends number> = (tuple: T) => V extends T[number] ? T[V] : never;
     function tupleHasProperty<T extends [...any[]]>(index: number): T[number];
@@ -338,13 +509,22 @@ export declare namespace Util {
     interface DeepFreezeArray<T> extends ReadonlyArray<DeepFreeze<T>> {
     }
     type DeepFreezeObject<T> = {
-        readonly [P in keyof T]: DeepFreeze<T[P]>;
+        +readonly [P in keyof T]: DeepFreeze<T[P]>;
     };
     type DeepReadonly<T> = {
-        readonly [P in keyof T]: DeepReadonly<T[P]>;
+        +readonly [P in keyof T]: DeepReadonly<T[P]>;
     };
+    function addition<N extends Util.Fifty>(num: N): Util.Add50<N>;
+    function addition100<N extends OneHundred>(num: N): Util.Add100<N> extends OneHundred ? Util.Add100<N> : never;
+    function subtraction<N extends Util.Fifty>(num: N): Util.Subtract50<N>;
+    function subtraction100<N extends OneHundred>(num: N): Util.Subtract100<N> extends OneHundred ? Util.Subtract100<N> : never;
     type DeepFreezeRecursive<T> = DeepReadonly<DeepFreeze<T>>;
     type DeepFreeze<T> = T extends (infer U)[] ? DeepFreezeArray<U> : T extends object ? DeepFreezeObject<T> : T;
+    interface SplitStr<T extends string> {
+        value: T;
+        substrings: T extends `${infer F}${infer R}` ? [F, ...SplitStr<R>['substrings']] : [];
+        length: T extends `${infer F}${infer R}` ? [F, ...SplitStr<R>['substrings']]['length'] : 0;
+    }
     type Constructor<T = {}> = new (...args: any[]) => T;
     type UnionFromArray<T> = Extract<T, Array<string>>[number] | Extract<T, string>;
     type ArrayUnion<T> = Extract<T, Array<string>>;
@@ -353,12 +533,153 @@ export declare namespace Util {
     };
     type ValueOf<T> = T[keyof T];
     type ReturnArray<K extends keyof T, T> = <V extends T[K]>(ind: K) => [keys: K, values: V];
-    type CreateUnion<K extends keyof T, V extends T[K], T extends ObjectOf<T, K>> = (array: T) => <V extends T[keyof T]>(index: K) => [keys: K, values: V];
+    type CreateUnion<K extends keyof T, V extends T[K], T extends ObjectOf<T, K>> = (array: T) => (index: K) => [keys: K, values: V];
     type IndexByType<T, K extends keyof T> = <V extends T[keyof T]>(ind: K) => [keys: K, values: V];
 }
-import AddOne = Util.AddOne;
+export declare namespace Metadata {
+    export type Config<P> = P extends [string, string] ? BaseObject<P> & {
+        [K in P as K[0]]: K[1];
+    } : never;
+    export type BaseObject<P> = P extends [string, string] ? P extends [P[0] extends string ? P[0] : never, P[1] extends string ? P[1] : never] ? {
+        version: P[1];
+        description: P[1];
+        author?: P[1];
+        copyright?: P[1];
+    } & ({
+        file?: P[1];
+        name: P[1];
+    } | {
+        file: P[1];
+        name?: P[1];
+    }) : never : never;
+    type MainKeys = 'name' | 'version' | 'file' | 'author' | 'copyright' | 'description';
+    export type Pairs<P extends P[number][]> = P extends Pair<P[number]>[] ? P : never;
+    /**
+     * @type {Author} Author - The author of the package.
+     */
+    export type Author<P> = P extends [string, string] ? P extends [P[0] extends 'author' ? P[0] : never, P[1] extends string ? P[1] : never] ? ['author', P[1]] & {
+        __type: 'author';
+    } : never : never;
+    /**
+     * @type {Description} Description - The description of the package.
+     */
+    export type Description<P> = P extends [string, string] ? P extends [P[0] extends 'description' ? P[0] : never, P[1] extends string ? P[1] : never] ? ['description', P[1]] & {
+        __type: 'description';
+    } : never : never;
+    /**
+     * @type {Version} Version - The version of the package.
+     */
+    export type Version<P> = P extends [string, string] ? P extends [P[0] extends 'version' ? P[0] : never, P[1] extends string ? P[1] : never] ? ['version', P[1]] & {
+        __type: 'version';
+    } : never : never;
+    /**
+     * @type {File} File - The file of the package.
+     */
+    export type File<P> = P extends [string, string] ? P extends [P[0] extends 'file' ? P[0] : never, P[1] extends string ? P[1] : never] ? ['file', P[1]] & {
+        __type: 'file';
+    } : never : never;
+    /**
+     * @type {Name} Name - The name of the package.
+     */
+    export type Name<P> = P extends [string, string] ? P extends [P[0] extends 'name' ? P[0] : never, P[1] extends string ? P[1] : never] ? ['name', P[1]] & {
+        __type: 'name';
+    } : never : never;
+    /**
+     * @type {Copyright} Copyright - The copyright of the package.
+     */
+    export type Copyright<P> = P extends [string, string] ? P extends [P[0] extends 'copyright' ? P[0] : never, P[1] extends string ? P[1] : never] ? ['copyright', P[1]] & {
+        __type: 'copyright';
+    } : never : never;
+    /**
+     * @type {Pair} Pair - A key-value pair.
+     * @template P - The key-value pair.
+     */
+    export type Pair<P> = P extends [string, string] ? P extends [P[0] extends string ? P[0] : never, P[1] extends string ? P[1] : never] ? P : never : never;
+    export type CombineArrays<T extends any[], U extends any[]> = [...T, ...U];
+    /**
+     * @function makeBasePair - Creates a base pair from key-value pairs.
+     * @type {MakeBasePair} BasePair - An array of key-value pairs with optional __type properties.
+     * @param {Pair<[string, string]>[]} pair - The key-value pair.
+     * @returns {BasePair<[string, string]>} The base pair.
+     */
+    export const makeBasePair: MakeBasePair;
+    /**
+     * @type MakeBasePair - Checks if an array is a base pair.
+     * @template P - The key-value pair.
+     * @returns {(P extends [K,V] ? MetaPair<P> : never)[]} The Final Array.
+     */
+    export type MakeBasePair = <P>(...pair: Pair<P>[]) => BasePair<P>;
+    /**
+     * @type BasePair - An array of key-value pairs with optional __type properties.
+     * @template P - The key-value pair.
+     */
+    export type BasePair<P> = Pair<P> extends [string, string] ? Pair<P> extends [Pair<P>[0] extends string ? Pair<P>[0] : never, Pair<P>[1] extends string ? Pair<P>[1] : never] ? {
+        [K in Pair<P> as K[0]]: MetaPair<K>;
+    }[Pair<P>[0]][] : never : never;
+    /**
+     * @type MetaPair - A key-value pair with a __type property or a normal key-value pair.
+     * @template P - The key-value pair.
+     */
+    export type MetaPair<P> = P extends [string, string] ? P extends [P[0] extends string ? P[0] : never, P[1] extends string ? P[1] : never] ? P[0] extends MainKeys ? P[0] extends 'name' ? ['name', P[1]] & {
+        __type: 'name';
+    } : P[0] extends 'version' ? ['version', P[1]] & {
+        __type: 'version';
+    } : P[0] extends 'file' ? ['file', P[1]] & {
+        __type: 'file';
+    } : P[0] extends 'author' ? ['author', P[1]] & {
+        __type: 'author';
+    } : P[0] extends 'description' ? ['description', P[1]] & {
+        __type: 'description';
+    } : P[0] extends 'copyright' ? ['copyright', P[1]] & {
+        __type: 'copyright';
+    } : never : [P[0], P[1]] : never : never;
+    /**
+     * @function isSinglePair - Checks if a pair is a common key-value pair.
+     * @param {Pair<P>} pair - The pair to check.
+     * @returns {pair is MetaPair<P>} Whether the pair is a common key-value pair.
+     */
+    export function isSinglePair<P>(pair: Pair<P>): pair is MetaPair<P> extends Pair<P> ? MetaPair<P> : never;
+    /**
+     * @function isAuthorPair - Checks if a pair is an author pair.
+     * @param {Pair<P>} pair - The pair to check.
+     * @returns {pair is Author<P>} Whether the pair is an author pair.
+     */
+    export function isAuthorPair<P>(pair: Pair<P>): pair is Author<P> extends Pair<P> ? Author<P> : never;
+    /**
+     * @function isVersionPair - Checks if a pair is a version pair.
+     * @param {Pair<P>} pair - The pair to check.
+     * @returns {pair is Version<P>} Whether the pair is a version pair.
+     */
+    export function isVersionPair<P>(pair: Pair<P>): pair is Version<P> extends Pair<P> ? Version<P> : never;
+    /**
+     * @function isFilePair - Checks if a pair is a file pair.
+     * @param {Pair<P>} pair - The pair to check.
+     * @returns {pair is File<P>} Whether the pair is a file pair.
+     */
+    export function isFilePair<P>(pair: Pair<P>): pair is File<P> extends Pair<P> ? File<P> : never;
+    /**
+     * @function isNamePair - Checks if a pair is a name pair.
+     * @param {Pair<P>} pair - The pair to check.
+     * @returns {pair is Name<P>} Whether the pair is a name pair.
+     */
+    export function isNamePair<P>(pair: Pair<P>): pair is Name<P> extends Pair<P> ? Name<P> : never;
+    /**
+     * @function isDescriptionPair - Checks if a pair is a description pair.
+     * @param {Pair<P>} pair - The pair to check.
+     * @returns {pair is Description<P>} Whether the pair is a description pair.
+     */
+    export function isDescriptionPair<P>(pair: Pair<P>): pair is Description<P> extends Pair<P> ? Description<P> : never;
+    /**
+     * @function isCopyrightPair - Checks if a pair is a description pair.
+     * @param {Pair<P>} pair - The pair to check.
+     * @returns {pair is Description<P>} Whether the pair is a description pair.
+     */
+    export function isCopyrightPair<P>(pair: Pair<P>): pair is Copyright<P> extends Pair<P> ? Copyright<P> : never;
+    export function isPairs<P>(pairArray: Pair<P>[]): pairArray is BasePair<P> extends typeof pairArray ? BasePair<P> : never;
+    export {};
+}
+export declare const isAlphaNumeric: typeof Util.isAlphaNumeric, joinArray: Join, makeTuple: typeof Util.makeTuple, removeChar: typeof Util.removeChar, split: SplitString, add: typeof Util.add, tupleHasProperty: typeof Util.tupleHasProperty, createCallback: typeof Util.createCallback, executeCallback: typeof Util.executeCallback, addition: typeof Util.addition, subtraction: typeof Util.subtraction, addition100: typeof Util.addition100, subtraction100: typeof Util.subtraction100;
 import AddOneSm = Util.AddOneSm;
-import AddTen = Util.AddTen;
 import AddTenHelper = Util.AddTenHelper;
 import AdditionHelper = Util.AdditionHelper;
 import AlphaNumeric = Util.AlphaNumeric;
@@ -395,7 +716,6 @@ import SplitString = Util.SplitString;
 import StringToArray = Util.StringToArray;
 import StringToNumber = Util.StringToNumber;
 import Subtract = Util.Subtract;
-import Tuple = Util.Tuple;
 import TupleProperty = Util.TupleProperty;
 import TupleHasProperty = Util.TupleHasProperty;
 import TypeParameter = Util.TypeParameter;
@@ -404,15 +724,26 @@ import UnionFromArray = Util.UnionFromArray;
 import ValueOf = Util.ValueOf;
 import RecursiveArray = Util.RecursiveArray;
 import RecursiveObject = Util.RecursiveObject;
-import joinArray = Util.joinArray;
-import split = Util.split;
-import tupal = Util.tupal;
-import makeTuple = Util.makeTuple;
-import tupleHasProperty = Util.tupleHasProperty;
-import isAlphaNumeric = Util.isAlphaNumeric;
-import removeChar = Util.removeChar;
 import ObjectHasProperty = Util.ObjectHasProperty;
-import AppendToStringArray = Util.AppendToStringArray;
-export type { AppendToStringArray, AddOne, AddOneSm, AddTen, AddTenHelper, AdditionHelper, AlphaNumeric, Alphabet, AlphaNumericUnion, ArrayToString, CapitalizeStrings, Concurrent, CreateUnion, DeepFreeze, DeepFreezeArray, DeepFreezeObject, DeepFreezeRecursive, DeepReadonly, FilterNever, FilterNestedNever, FilterNeverWithDepth, Interpolate, InterpolateBySep, Join, LowercaseArray, MakeNormal, MultiCase, ObjectFromUnion, ObjectHasProperty, ObjectOf, Opaque, Property, RemoveChar, RemoveChars, ReturnArray, SeparatorInterpolation, Split, SplitString, StringToArray, StringToNumber, Subtract, Tuple, TupleProperty, TupleHasProperty, TypeParameter, TypePlusParameter, UnionFromArray, ValueOf, RecursiveArray, RecursiveObject };
-export { isAlphaNumeric, joinArray, makeTuple, removeChar, split, tupal, tupleHasProperty, };
+import OneThousand = Util.OneThousand;
+import HundredArray = Util.HundredArray;
+import BelowOneHundred = Util.BelowOneHundred;
+import TenArray = Util.TenArray;
+import BelowTen = Util.BelowTen;
+import MetaConfig = Metadata.Config;
+import MetaAuthorPair = Metadata.Author;
+import MetaDescriptionPair = Metadata.Description;
+import MetaVersionPair = Metadata.Version;
+import MetaFilePair = Metadata.File;
+import MetaNamePair = Metadata.Name;
+import MetaCopyrightPair = Metadata.Copyright;
+import OneHundred = Util.OneHundred;
+import Fifty = Util.Fifty;
+import Fifteen = Util.Fifteen;
+import Add100 = Util.Add100;
+import Subtract100 = Util.Subtract100;
+import Subtract50 = Util.Subtract50;
+import Add50 = Util.Add50;
+import Add = Util.Add;
+export type { MetaConfig, OneHundred, Add50, Subtract50, Fifty, Fifteen, Add100, Subtract100, MetaCopyrightPair, MetaAuthorPair, MetaDescriptionPair, MetaVersionPair, MetaFilePair, MetaNamePair, OneThousand, HundredArray, BelowOneHundred, TenArray, BelowTen, Add, Subtract, AddOneSm, AddTenHelper, AdditionHelper, AlphaNumeric, Alphabet, AlphaNumericUnion, ArrayToString, CapitalizeStrings, Concurrent, CreateUnion, DeepFreeze, DeepFreezeArray, DeepFreezeObject, DeepFreezeRecursive, DeepReadonly, FilterNever, FilterNestedNever, FilterNeverWithDepth, Interpolate, InterpolateBySep, Join, LowercaseArray, MakeNormal, MultiCase, ObjectFromUnion, ObjectHasProperty, ObjectOf, Opaque, Property, RemoveChar, RemoveChars, ReturnArray, SeparatorInterpolation, Split, SplitString, StringToArray, StringToNumber, TupleProperty, TupleHasProperty, TypeParameter, TypePlusParameter, UnionFromArray, ValueOf, RecursiveArray, RecursiveObject, };
 export default Util;

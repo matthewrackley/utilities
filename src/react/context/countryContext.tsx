@@ -4,9 +4,9 @@
  * @author Matthew Allen Rackley
  * @copyright [Matthew Rackley's Github](https://www.github.com/matthewrackley "Matthew Rackley on github.com")
  */
-import { type Countries, type RegionCode} from '@countries/countries.types.ts';
+import { Countries, type RegionCode, type CountryArray, type CountriesData } from '@countries/countries';
 import React, { createContext, useContext } from 'react';
-import useCountry from '@hooks/useCountry.ts';
+import useCountry from '@hooks/useCountry';
 
 //___=============================>                 <============================___\\
 //___|| ==================== ||      CONTEXT SETUP      || =================== ||___\\
@@ -18,8 +18,8 @@ import useCountry from '@hooks/useCountry.ts';
  * @property {React.HandleSelect} handleCountry
  */
 export interface CountryContextType {
-  country: Countries[RegionCode];
-  handleCountry: React.HandleSelect;
+  country: CountriesData[RegionCode];
+  handleCountry: (event: React.ChangeEvent<HTMLSelectElement>) => void;
 }
 /**
  * @constant CountryContext
@@ -52,14 +52,15 @@ export const useCountryContext = () => {
  */
 
 interface Props {
+  initialCountry: RegionCode;
   children: React.ReactNode;
 }
-export const CountryProvider: React.FC<Props> = ({ children }) => {
-  const [country, handleCountry] = useCountry();
+export const CountryProvider: React.FC<Props> = (props) => {
+  const [country, handleCountry] = useCountry(props.initialCountry);
 
   return (
     <CountryContext.Provider value={{ country, handleCountry }}>
-      { children }
+      { props.children }
     </CountryContext.Provider>
   );
 };

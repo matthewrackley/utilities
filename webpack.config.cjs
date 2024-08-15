@@ -1,3 +1,26 @@
+/*
+ *   Copyright (c) 2024 Matthew Allen Rackley
+ *   All rights reserved.
+
+ *   Permission is hereby granted, free of charge, to any person obtaining a copy
+ *   of this software and associated documentation files (the "Software"), to deal
+ *   in the Software without restriction, including without limitation the rights
+ *   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ *   copies of the Software, and to permit persons to whom the Software is
+ *   furnished to do so, subject to the following conditions:
+
+ *   The above copyright notice and this permission notice shall be included in all
+ *   copies or substantial portions of the Software.
+
+ *   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ *   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ *   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ *   SOFTWARE.
+ */
+
 const BrotliWebpackPlugin = require('brotli-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
@@ -9,8 +32,13 @@ const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin').default;
 const path = require('node:path');
 require('webpack-merge');
 
+/**
+ * @returns {import('webpack').Configuration}
+ * @constant module.exports
+ * */
 module.exports = (env = process.env, argv) => {
   const isProduction = argv.mode === 'production';
+  /** @type {import('webpack').Configuration} */
   const config = {
     watchOptions: {
       ignored: /node_modules/,
@@ -19,7 +47,6 @@ module.exports = (env = process.env, argv) => {
     },
     entry: './src/react/index.tsx',
     resolve: {
-
       extensions: ['.jsx', '.js', '.json', '.ts', '.tsx', '.d.ts'],
       extensionAlias: {
         ".js": [".js", ".ts"],
@@ -32,7 +59,6 @@ module.exports = (env = process.env, argv) => {
       alias: {
         '$server': path.resolve(__dirname, './src/server/'),
         '@modules': path.resolve(__dirname, './src/modules/'),
-        // '@assets': path.resolve(__dirname, './src/assets/'),
         '@classes': path.resolve(__dirname, './src/classes/'),
         '@countries': path.resolve(__dirname, './src/modules/countries/'),
         '@components': path.resolve(__dirname, './src/react/components/'),
@@ -42,6 +68,7 @@ module.exports = (env = process.env, argv) => {
         '@utilities': path.resolve(__dirname, './src/utilities/'),
         '@pages': path.resolve(__dirname, './src/react/pages/'),
         '@types': path.resolve(__dirname, './src/types/'),
+        '@theme': path.resolve(__dirname, './src/types/theme.ts'),
         '@assets': path.resolve(__dirname, './src/react/assets/'),
         '@app': path.resolve(__dirname, './src/react/app/'),
         '@preview': path.resolve(__dirname, './src/react/app/preview/'),
@@ -72,6 +99,11 @@ module.exports = (env = process.env, argv) => {
         //   ],
         // }),
       ]
+    },
+    cache: {
+      cacheDirectory: path.resolve(__dirname, '.cache/webpack'),
+      compression: 'brotli',
+      type: 'filesystem',
     },
     module: {
       strictExportPresence: true,
@@ -120,6 +152,7 @@ module.exports = (env = process.env, argv) => {
       new HtmlWebpackPlugin({
         template: path.resolve('src/react/index.html'),
         inject: 'head',
+        hash: true,
       }),
       new MiniCssExtractPlugin(),
       new BrotliWebpackPlugin(),
@@ -132,7 +165,7 @@ module.exports = (env = process.env, argv) => {
     devServer: isProduction ? undefined : {
       // Serve static files from the 'dist' folder
       static: {
-        directory: path.join(__dirname, 'dist'),
+        directory: path.join(__dirname, 'dist/react/'),
       },
       // WebSocket server for Hot Module Replacement
       webSocketServer: 'ws', // Default is 'ws', but you can also use 'sockjs'
