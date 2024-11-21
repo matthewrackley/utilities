@@ -1,48 +1,43 @@
+/*
+ *   Copyright (c) 2024 Matthew Allen Rackley
+ *   All rights reserved.
+
+ *   Permission is hereby granted, free of charge, to any person obtaining a copy
+ *   of this software and associated documentation files (the "Software"), to deal
+ *   in the Software without restriction, including without limitation the rights
+ *   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ *   copies of the Software, and to permit persons to whom the Software is
+ *   furnished to do so, subject to the following conditions:
+
+ *   The above copyright notice and this permission notice shall be included in all
+ *   copies or substantial portions of the Software.
+
+ *   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ *   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ *   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ *   SOFTWARE.
+ */
+
 /**
  * @file resizeArea.tsx
  * @description
  * @author Matthew Allen Rackley
  * @copyright [Matthew Rackley's Github](https://www.github.com/matthewrackley "Matthew Rackley on github.com")
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
-
-import childrenEnhancer from '@components/headless/childrenEnhancer';
+import { v4 as uuid } from 'uuid';
 import Lock, { useLock } from '@assets/lock';
 import FileViewer from './fileViewer';
-import { Bounds, ContainerElement, HTMLChildren, Size } from './types/RndBnd.types';
+import { ModuleConsumer, ModuleProps, Modules, useModuleContext } from '@context/moduleContext';
+import useComputedStyles from '@hooks/useComputedStyles';
+import { LDHandle } from '../components/util/ldHandle';
 
-interface ParentProps {
-  height?: string | number;
-  width?: string | number;
-  children?: React.ReactNode;
-  className?: string;
-  maxCount?: number;
-  __count?: number;
-  get 'data-count'(): number;
-  element?: HTMLDivElement;
-}
-type Proportion = '1/8' | '1/4' | '1/3' | '3/8' | '1/2' | '5/8' | '2/3' | '3/4' | '7/8' | '1';
-type Shape = 'square' | 'rectangle' | 'title-box' | 'column' | 'row' | 'pillar';
-interface SectionProps extends ParentProps {
-  shape?: Shape;
-  lockClassName?: string;
-  proportion?: Proportion;
-  parentRef?: React.RefObject<HTMLDivElement>;
-  childRef?: React.RefObject<FileViewer<any>>;
-  setClassName?: (className: string) => void;
-  handleProportion?: <P extends Proportion = '1'>(number: number, proportion?: P) => number;
-  _className?: string;
-  counter?: CounterCreator;
-}
-interface ContainerProps extends ParentProps {
-  parentRef: React.RefObject<HTMLElement>;
-  childRef: React.RefObject<HTMLChildren<[...HTMLDivElement[]]['length'] extends this['data-count'] ? [...HTMLDivElement[]] : never>>;
-}
-type CounterCreator = typeof counter;
-type Counter = () => number;
-function counter(): Counter {
-  let count = 0;
+function counter(startCount: number = 0): Counter {
+  let count = startCount;
   return () => {
     count++;
     return count;
@@ -52,87 +47,73 @@ function handleProportion<P extends Proportion = '1'>(number: number, proportion
   const [numerator, denominator] = proportion.split('/').map(Number) || [1, 1];
   return number * (numerator / denominator);
 }
-
-function matchProportion<P extends Proportion = '1'>(number: number, proportion: P): [number, number] {
+type Result = number & { __result: never; };
+type Remainder = number & { __remainder: never; };
+function matchProportion<P extends Proportion = '1'>(number: number, proportion: P): [Result, Remainder] {
   const [numerator, denominator] = proportion.split('/').map(Number) || [1, 1];
   const [inverseNumerator, inverseDenominator] = [denominator - numerator, denominator];
   const result = number * (numerator / denominator);
   const remainder = number * (inverseNumerator / inverseDenominator);
-  return [result, remainder];
+  return [result, remainder] as [Result, Remainder];
 }
-const resizeCounter: Counter = counter() as Counter;
-abstract class Parent extends React.Component<SectionProps> {
-  abstract render(): React.ReactNode;
-}
-let parentClassName = 'resize-area';
-const ContainerDiv = <N extends number>() => styled.div.attrs<ContainerProps>((attr) => {
 
-})``;
-type ComputeStyling = <T extends HTMLElement, S extends string>(el: T, property?: S | null) => T extends HTMLElement ? S extends string ? string : CSSStyleDeclaration & { [el: string]: T; } : { _error: 'Element is null'; };
-/**
- * @function getComputedStyle
- * @description This function is used to get the computed styling of an element.
- * @param el The element to get the computed styling of.
- * @param property The property to get the computed styling of.
- * @returns The computed styling of the element, or the value of the property if it is provided.
- */
-function getComputedStyle<T extends HTMLElement, S extends string | null = null>(el: T, property: S | null = null) {
-  const style = window.getComputedStyle(el) as CSSStyleDeclaration & { [el: string]: T; };
-  return (el !== undefined ? typeof property === 'string' ? style.getPropertyValue(property) : style : { _error: 'Element is null' }) as T extends HTMLElement ? S extends string ? string : CSSStyleDeclaration & { [el: string]: T; } : { _error: 'Element is null'; };
-};
-const SectionDiv = styled.div.attrs<SectionProps>((props) => {
+interface StyleSize {
+  width: string;
+  height: string;
+}
+function handleShapeProportion(shape: Shape, proportion: Proportion, size: StyleSize) {
+  const proportions = {
+    height: (shape === 'square' || shape === 'column' || shape === 'pillar')
+    ? matchProportion(parseFloat(size.height), proportion)
+    : (shape === 'rectangle')
+      ? matchProportion(parseFloat(size.height) * 0.5, proportion)
+      : (shape === 'row')
+        ? matchProportion(parseFloat(size.height) * 0.25, proportion)
+        : (shape === 'title-box')
+          ? matchProportion(parseFloat(size.height) * 0.1, proportion)
+          : matchProportion(parseFloat(size.height), proportion),
+  width: (shape === 'square' || shape === 'rectangle' || shape === 'row' || shape === 'title-box')
+    ? matchProportion(parseFloat(size.width), proportion)
+    : (shape === 'pillar')
+      ? matchProportion(parseFloat(size.width) * 0.5, proportion)
+      : (shape === 'column')
+        ? matchProportion(parseFloat(size.width) * 0.25, proportion)
+        : matchProportion(parseFloat(size.width), proportion),
+  }
+  return {
+    result: {
+      width: proportions.width[0] as number,
+      height: proportions.height[0] as number
+    },
+    remainder: {
+      width: proportions.width[1] as number,
+      height: proportions.height[1] as number
+    }
+  }
+}
+
+const SectionDiv = styled.div.attrs<SectionAttr>((attr) => {
   /**
    * @note This is used to get the computed styling of the SectionDiv.
    */
-  const height = parseFloat(getComputedStyle((props.ref as React.RefObject<HTMLDivElement>).current!, 'height'));
-  const width = parseFloat(getComputedStyle((props.ref as React.RefObject<HTMLDivElement>).current!, 'width'));
-  props.childRef = props.childRef;
-  const childCount = props.childRef?.current?.children.length;
-  props = {
-    ...props,
-    __count: props.__count || 0,
-    get 'data-count'() {
-      this.__count = this.__count ? this.__count : 0;
-      return this.__count++;
+
+  const count = counter();
+  const $__count = count();
+  return {
+    $__count,
+    get '$data-count'(): number {
+      return count();
     },
-    className: `${props.className}:${props['data-count']}`,
-    _className: props.className,
-    shape: props.shape,
-    handleProportion,
-    proportion: props.proportion,
-    height: (props.shape === 'square' || props.shape === 'column' || props.shape === 'pillar')
-      ? handleProportion(height, props.proportion)
-      : (props.shape === 'rectangle')
-        ? handleProportion(height * 0.5, props.proportion)
-        : (props.shape === 'row')
-          ? handleProportion(height * 0.25, props.proportion)
-          : (props.shape === 'title-box')
-            ? handleProportion(height * 0.1, props.proportion)
-            : handleProportion(Number(props.height), props.proportion),
-    width: (props.shape === 'square' || props.shape === 'rectangle' || props.shape === 'row' || props.shape === 'title-box')
-      ? handleProportion(width, props.proportion)
-      : (props.shape === 'pillar')
-        ? handleProportion(width * 0.5, props.proportion)
-        : (props.shape === 'column')
-          ? handleProportion(width * 0.25, props.proportion)
-          : handleProportion(Number(props.width), props.proportion),
-  };
-  parentClassName = props._className ? props._className as string : parentClassName;
-  return props;
-}).withConfig({
-  displayName: 'Resize-Area',
-  attrs: [{
-    shape: 'square',
-    height: '100%',
-    width: '100%',
-    className: parentClassName,
-    setClassName: (className: string) => {
-      parentClassName = className;
+    className: `${attr.className}:[${attr['$data-count']}]`,
+    $handleProportion: <P extends Proportion = '1'>(number: number, proportion: P = '1' as P): number => {
+      const [numerator, denominator] = proportion.split('/').map(Number) || [1, 1];
+      return number * (numerator / denominator);
     },
-    counter: () => resizeCounter
-  }],
-  componentId: 'resize-area',
-})`
+    ref: attr.ref,
+    $shape: attr.$shape,
+    $proportion: attr.$proportion,
+  }
+})<SectionProps>`
   &.${(props) => props.className} {
     position: relative;
     display: grid;
@@ -151,7 +132,7 @@ const SectionDiv = styled.div.attrs<SectionProps>((props) => {
     grid-area: resize-area;
   }
 
-  .${props => props.lockClassName} {
+  .${props => props.$lockClassName} {
     position: absolute;
     top: 0;
     right: 0;
@@ -170,92 +151,280 @@ const SectionDiv = styled.div.attrs<SectionProps>((props) => {
   width: 100%;
   height: 100%;
 `;
-const PropArea = styled.div`
-  .prop-area {  display: grid;
-    grid-template-columns: 1.5fr 0.5fr;
-    grid-template-rows: 0.1fr 1.9fr;
-    gap: 0px 0px;
-    grid-auto-flow: row;
-    grid-template-areas:
-      "prop-area-header prop-select"
-      "resize-area prop-select";
-    grid-area: prop-area;
+
+
+
+
+const LdHandle = styled.div<LDHandleProps>`
+  &.ld-handle {
+    position: absolute;
+    display: flex;
+    border-top-left-radius: 0.33rem;
+    border-top-right-radius: 0.33rem;
+    transform: ${(props) => `translate(0, ${props.$lddata.transform})`};
+    left: ${(props) => props.$lddata.left};
+    top: ${(props) => props.$lddata.top};
+    width: ${(props) => props.$lddata.width };
+    height: ${(props) => props.$lddata.height};
+    border: 3px solid ${props => props.theme.accent({ variant: props.$variant || 'border' })};
+    background-color: ${props => props.theme.background({ variant: props.$variant || 'default' })};
+    cursor: move;
+  }
+  .locked {
+    position: fixed;
+    top: ${(props) => props.style?.top};
+    left: ${(props) => props.style?.left};
+    width: ${(props) => props.style?.width};
+    height: ${(props) => props.style?.height};
+    max-width: ${(props) => props.style?.width};
+    min-width: ${(props) => props.style?.width};
+    max-height: ${(props) => props.style?.height};
+    min-height: ${(props) => props.style?.height};
   }
 `;
+const LDTitle = styled.h3`
+  font-size: 0.75rem;
+  padding-left: 1rem;
+  position: relative;
+  align-self: center;
+  font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+  font-weight: 700;
+  color: ${(props) => props.theme.accent({ variant: 'primary' })};
+`;
 
-
-export interface ChildProps {
-  parentWidth: ParentData['size']['width'];
-  parentHeight: ParentData['size']['height'];
-  parentRef: React.RefObject<HTMLDivElement>;
+const renderableComponents = ['Text', 'Image', 'Video'];
+const isRenderableComponent = (value: string): value is RenderableComponent => {
+  return renderableComponents.includes(value);
 }
-
-export type SimpleCSSSize = `${number}px` | `${number}%`;
-export interface ParentData {
-  bounds: Bounds;
-  size: Size;
-  ref: React.RefObject<HTMLDivElement>;
-  element: HTMLDivElement |  null;
+interface ComponentSelectorProps {
+  onAdd: (value: RenderableComponent) => void;
 }
-export const ResizeArea: React.FC<SectionProps> = (props) => {
-  const parentRef = React.useRef<HTMLDivElement>(null);
-  const childRef = React.useRef<FileViewer<any>>(null);
+const ComponentSelector: React.FC<ComponentSelectorProps> = (props) => {
+  const [value, setValue] = useState<RenderableComponent>('Text');
+  const { onAdd } = props;
+  const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const newValue = event.target.value;
+    if (isRenderableComponent(newValue)) {
+      setValue(newValue);
+    }
+  };
+  const handleSubmit = () => {
+    onAdd(value);
+  }
+  return (
+    <>
+      <select key='component-selector' value={ value } onChange={ handleChange }>
+        <option key='Text' value='Text'>Text</option>
+        <option key='Video' value='Video'>Video</option>
+        <option key='Image' value='Image'>Image</option>
+      </select>
+      <button onClick={ handleSubmit }>Add Component</button>
+    </>
+  )
+}
+interface DataHolderProps {
+  id: string;
+  component: 'Text' | 'Image' | 'Video';
+  onRemove: (id: string) => void;
+  parentData: ParentData;
+}
+const TextComponent = styled.div`
+
+`;
+const VideoComponent = styled.div`
+
+`;
+const ImageComponent = styled.div`
+
+`;
+type BaseData<I extends string | undefined> = I extends string ? {
+  width: number;
+  height: number;
+  rect: DOMRect;
+  id: I;
+} : {
+  width: number;
+  height: number;
+  rect: DOMRect;
+}
+const getBaseData = <T extends HTMLElement, I extends string | undefined>(element: T, id: I = undefined as I): BaseData<I> => {
+  const computedStyle = window.getComputedStyle(element);
+  const rect = element.getBoundingClientRect();
+  const width = parseFloat(computedStyle.getPropertyValue('width'));
+  const height = parseFloat(computedStyle.getPropertyValue('height'));
+  if (id) {
+    element.id = id;
+  }
+  return { width, height, rect, id } as BaseData<I>
+}
+const DataHolder: React.FC<DataHolderProps> = (props) => {
+  const childRef = React.useRef<HTMLDivElement>(null);
+  const fvRef = React.useRef<FileViewer>(null);
+  const ldRef = React.useRef<HTMLDivElement>(null);
+  const [rndData, setRndData] = useState<ElementData>({ width: 0, height: 0, left: 0, right: 0, top: 0, bottom: 0, rect: {} as DOMRect });
+  const [childData, setChildData] = useState<ElementData>({ id: uuid(), width: 0, height: 0, left: 0, right: 0, top: 0, bottom: 0, rect: {} as DOMRect });
+  const [ldData, setLDData] = useState<LDData>({ id: uuid(), width: 0, height: 0, left: 0, right: 0, top: 0, bottom: 0, transform: '0px' });
   const [locked, handleLock] = useLock(false);
-  const [parentData, setParentData] = useState<ParentData>({ bounds: { top: 0, bottom: 0, left: 0, right: 0 }, size: { width: 0, height: 0 }, ref: props.parentRef!, element: props.parentRef!.current });
-
   useEffect(() => {
     // Function to measure the computed width and height of the grid item
     const measureSize = () => {
-      const gridItem = props.parentRef?.current;
-      if (gridItem) {
-        const computedStyle = window.getComputedStyle(gridItem);
-        const size = {
-          width: parseFloat(computedStyle.getPropertyValue('width')),
-          height: parseFloat(computedStyle.getPropertyValue('height'))
-        };
-        const bounds: Bounds = {
-          left: (size.width - (size.width * 0.55)) / 2,
-          top: (size.height - (size.height * 0.55)) / 2,
-          right: size.width - ((size.width - (size.width * 0.55)) / 2),
-          bottom: size.height - ((size.height - (size.height * 0.55)) / 2),
-        };
-        setParentData({
-          size: size,
-          bounds: bounds,
-          ref: props.parentRef!,
-          element: gridItem,
-        });
-        // You can store or use these values as needed
+      let rndEl = {} as HTMLDivElement | null;
+      let data = {} as LDData;
+      if (fvRef.current && (rndEl = fvRef.current.rndElement)) {
+        const { rect: rndRect, ...rndSize } = getBaseData(rndEl);
+        const eHandle = rndEl.querySelector('e-handle');
+        if (ldRef.current) {
+          const ldComputedStyle = window.getComputedStyle(ldRef.current);
+          const ldRect = ldRef.current.getBoundingClientRect();
+          ldRef.current.id = ldData.id;
+          data.id = ldData.id;
+          data.height = ldRect.height || parseFloat(ldComputedStyle.getPropertyValue('height'));
+          data.bottom = rndData.rect.top;
+          data.top = rndData.rect.top + data.height + 3;
+          data.left = rndData.rect.left;
+          data.right = rndData.rect.right;
+          data.transform = `${-data.height}px`;
+          console.log('LD RECT:\n', ldRect);
+          if (eHandle && eHandle instanceof HTMLDivElement) {
+            data.width = `${rndRect.width - (parseFloat(eHandle.style.width) / 2)}px`;
+          } else {
+            data.width = `${rndRect.width - 10}px`;
+          }
+          setLDData(data);
+        }
+        setRndData({ width: rndSize.width, height: rndSize.height, left: rndRect.left, right: rndRect.right, bottom: rndRect.bottom, top: rndRect.top, rect: rndRect });
       }
-    };
+      if (childRef.current) {
+        const { width, height, rect, id } = getBaseData(childRef.current, childData.id!)
+        const { left, right, top, bottom } = rect;
+        setChildData({ id, width, height, left, right, top, bottom, rect });
+        console.log('Child Data:\n', childData)
+      }
+    }
     // Call the measureSize function after the component has been rendered
     measureSize();
     // You can also listen for window resize events to update the values if needed
-    window.addEventListener('resize', measureSize);
+    fvRef.current?.rndElement?.addEventListener('onResize', measureSize);
+    ldRef.current?.addEventListener('onResize', measureSize);
     // Clean up the event listener when the component unmounts
     return () => {
-      window.removeEventListener('resize', measureSize);
+      fvRef.current?.rndElement?.removeEventListener('onResize', measureSize)
+      ldRef.current?.removeEventListener('onResize', measureSize);
     };
-  }, []);
-
+  }, [fvRef.current, ldRef.current]);
+  const $lddata: LDData = {
+    ...ldData,
+    height: '1.5rem'
+  }
   return (
-    <SectionDiv
-      ref={ parentRef }
-      className='resize-area'
-      parentRef={ parentRef }
+    <FileViewer
+      child={ childData }
+      ld={ldData}
+      key={ props.id }
+      id={ props.id } // Pass the id for deletion
+      parent={ props.parentData }
       childRef={ childRef }
-      proportion={ props.proportion }
-      shape={ props.shape }
-      height={ props.height }
-      width={ props.width }
-      handleProportion={ props.handleProportion }
-      data-count={ props['data-count'] }
-      counter={ (props.counter) }
-      element={ props.parentRef?.current! }
-      _className='resize-area'
+      ref={ fvRef }
+      maxSize='fill-parent'
+      minSize='fit-content'
+      locked={ locked }
     >
-      <FileViewer parent={ parentData } ref={ childRef } locked={ locked } handleLock={ handleLock } />
-    </SectionDiv>
+      <LDHandle
+        lddata={ $lddata }
+        ldRef={ ldRef }
+        locked={ locked }
+        handleLock={ handleLock }
+        onRemove={ () => props.onRemove(props.id) }
+      />
+      {props.component === 'Text' && <TextComponent ref={childRef}>Text Component</TextComponent>}
+      {props.component === 'Image' && <ImageComponent ref={childRef}>Image Component</ImageComponent>}
+      {props.component === 'Video' && <VideoComponent ref={childRef}>Video Component</VideoComponent>}
+    </FileViewer>
+  )
+}
+export const ResizeArea: React.FC<SectionProps> = (props) => {
+  const { module } = useModuleContext();
+  const parentRef = React.useRef<HTMLDivElement>(null);
+  const [parentData, setParentData] = useState<ParentData>({ bounds: { top: 0, bottom: 0, left: 0, right: 0 }, size: { width: 0, height: 0 }, ref: parentRef });
+  const [fileViewers, setFileViewers] = useState<FileViewerData[]>([]); // Store the file viewers
+
+  const handleAdd = (value: RenderableComponent) => {
+    // Add new FileViewer data with some unique id
+    const newFileViewer: FileViewerData = { id: uuid(), component: value };
+    setFileViewers([...fileViewers, newFileViewer]);
+  };
+
+  const handleRemove = (id: string) => {
+    // Filter out the FileViewer with the given id
+    setFileViewers(fileViewers.filter(fv => fv.id !== id));
+  };
+  useEffect(() => {
+    // Function to measure the computed width and height of the grid item
+    const measureSize = () => {
+      if (parentRef.current) {
+        const parentRect = parentRef.current.getBoundingClientRect();
+        const parentComputedStyle = window.getComputedStyle(parentRef.current);
+        const parentSize = {
+          width: parseFloat(parentComputedStyle.getPropertyValue('width')),
+          height: parseFloat(parentComputedStyle.getPropertyValue('height'))
+        };
+        const bounds: Bounds = {
+          left: (parentSize.width - (parentSize.width * 0.55)) / 2,
+          top: (parentSize.height - (parentSize.height * 0.55)) / 2,
+          right: ((parentSize.width - (parentSize.width * 0.55)) / 2) + parentSize.width,
+          bottom: ((parentSize.height - (parentSize.height * 0.55)) / 2) + parentSize.height,
+        };
+        setParentData({
+          size: parentSize,
+          bounds,
+          ref: parentRef
+        });
+      }
+    }
+    // Call the measureSize function after the component has been rendered
+    measureSize();
+
+    // You can also listen for window resize events to update the values if needed
+    parentRef.current?.addEventListener('resize', measureSize);
+    // Clean up the event listener when the component unmounts
+    return () => {
+      parentRef.current?.removeEventListener('resize', measureSize);
+    };
+  }, [parentRef]);
+  return (
+    <>
+      <ComponentSelector onAdd={ handleAdd } />
+      <SectionDiv
+        ref={ parentRef }
+        className='resize-area'
+        $parentRef={ parentRef }
+        $proportion={ props.$proportion }
+        $shape={ props.$shape }
+        $handleProportion={ props.$handleProportion }
+        $counter={ (props.$counter) }
+        $__count={ 0 }
+        $data-count={ props['$data-count'] }
+        $height={ parentData.size.height }
+        $width={ parentData.size.width }
+      >
+      {fileViewers.map(fv => (
+        <DataHolder component={ fv.component } id={fv.id} onRemove={handleRemove} parentData={parentData} />
+      ))}
+        {/* <FileViewer parent={ parentData } childRef={ childRef } ref={ fvRef } maxSize={ 'fill-parent' } minSize={ 'fit-content' } locked={ locked }>
+          <LDHandle
+            className={ `ld-handle${locked ? ' locked' : ''}` }
+            $lddata={$lddata}
+            ref={ ldRef }
+          >
+            <LDTitle>
+              Drag-Handle
+            </LDTitle>
+            <Lock locked={locked} handleLock={handleLock } />
+          </LDHandle>
+          <ModuleConsumer ref={childRef} />
+        </FileViewer> */}
+      </SectionDiv>
+    </>
   );
 };
 

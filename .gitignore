@@ -1,6 +1,12 @@
 node_modules
 .vscode
+.git
 dist
+.history
+.cache
+__previewjs__
+deprecated
 
 # React Component Preview
 previewConfig.json
+preview.config.js

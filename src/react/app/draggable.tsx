@@ -7,36 +7,30 @@
 
 import React from 'react';
 import { Rnd, DraggableData, type RndResizeCallback, type RndDragCallback, type RndResizeStartCallback, type RndDragEvent, Position, Props as RndProps } from 'react-rnd';
-import RndBnd, { Percentage, Bounds, ChildComponent, DefaultDimensions, Fractions, MouseData, ContainerElement, PercentOfParent, Range, RndBndProps, StateGetsSets, Status, Size, RndBndStates, RndBndElementCallback, Fraction } from './types/RndBnd.types';
+import RndBnd, { Fractions } from './types/RndBnd.types';
 import { DraggableEvent } from 'react-draggable';
 import { ResizeDirection, Resizable } from 're-resizable';
 import { Route, Routes, useParams } from 'react-router-dom';
 import ResizeArea, { type SimpleCSSSize, type ChildProps, ParentSize } from './resizeArea';
 import DynamicLoader from './dynamicLoader';
 
-export const percents: Percentage[] = [0.04, 0.06, 0.07, 0.08, 0.16, 0.17, 0.18, 0.19, 0.27, 0.28, 0.29, 0.31, 0.38, 0.39, 0.41, 0.42, 0.49, 0.51, 0.52, 0.53, 0.61, 0.62, 0.63, 0.64, 0.72, 0.73, 0.74, 0.76, 0.83, 0.84, 0.86, 0.87, 0.94, 0.96, 0.97, 0.98, 0.01, 0.02, 0.03, 0.05, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15, 0.20, 0.21, 0.22, 0.23, 0.24, 0.25, 0.26, 0.30, 0.32, 0.33, 0.34, 0.40, 0.43, 0.44, 0.45, 0.46, 0.47, 0.48, 0.35, 0.36, 0.68, 0.69, 0.70, 0.71, 0.65, 0.66, 0.67, 0.37, 0.50, 0.54, 0.55, 0.56, 0.57, 0.58, 0.59, 0.60, 0.75, 0.77, 0.78, 0.79, 0.80, 0.81, 0.82, 0.85, 0.88, 0.89, 0.90, 0.91, 0.92, 0.93, 0.95, 0.99, 0.125, 0.175, 0.225, 0.025, 0.075, 0.275, 0.325, 0.375, 0.425, 0.625, 1.00, 0.675, 0.525, 0.475, 0.575, 0.725, 0.775, 0.825, 0.875, 0.925, 0.975, 0.09090909090909091, 0.08333333333333333, 0.0078125, 0.07692307692307693, 0.06666666666666667, 0.0625, 0.03571428571428571, 0.3333333333333333, 0.03125, 0.16666666666666666, 0.015625, 0.14285714285714285, 0.1111111111111111, 0.6875, 0.9921875, 0.8125, 0.9375, 0.6666666666666666, 0.1875, 0.42857142857142855, 0.96875, 0.3125, 0.625, 0.5555555555555556, 0.984375, 0.4375, 0.875, 0.5625];
-export function isFraction(fraction: string): fraction is Fraction {
-  if (Fractions[fraction as Fraction] === undefined) return false;
-  for (const key of Object.keys(Fractions) as Fraction[]) {
-    if (fraction === key) return true;
-  };
-  return false;
-}
-export function isPercentage(percentage: number): percentage is Percentage {
-  return percents.includes(percentage);
-}
+type Percentage = RndBnd.Percentage;
+type Bounds = RndBnd.Bounds;
+type ChildComponent = RndBnd.ChildComponent;
+type DefaultDimensions = RndBnd.DefaultDimensions;
+type MouseData = RndBnd.MouseData;
+type ContainerElement = RndBnd.ContainerElement;
+type PercentOfParent = RndBnd.PercentOfParent;
+type Range = RndBnd.Range;
+type RndBndProps = RndBnd.RndBndProps;
+type StateGetsSets = RndBnd.StateGetsSets;
+type Status = RndBnd.Status;
+type Size = RndBnd.Size;
+type RndBndStates = RndBnd.RndBndStates;
+type RndBndElementCallback = RndBnd.RndBndElementCallback;
+type Fraction = RndBnd.Fraction;
 
 
-// Write a typeguard that checks and distinguishes the percent type to determine the percentage subtype
-export function isPercent<V extends Percentage>(percentage: V): percentage is V {
-  if (typeof percentage === 'number') {
-    return percentage >= 0 && percentage <= 1;
-  } else if (typeof percentage === 'string') {
-    return Fractions.hasOwnProperty(percentage);
-  } else {
-    return false;
-  }
-}
 
 
 export type FileList = string[];
@@ -418,18 +412,18 @@ function getRndBndProps(this: React.Component<RndBndProps, RndBndStates>, ref: R
       if (deltaX > 0) {
         // If the element is shrinking on the left side
         if (withinPosition() && withinSize()) {
-          newWidth = Math.max(newWidth - (deltaX + ), this.props.parent.width * 0.55)
+          newWidth = Math.max(newWidth - Math.abs(deltaX), this.props.parent.width * 0.55)
         }
         // If the element is growing on the right side
         if (withinPosition('right') && withinSize(true)) {
-          newWidth += Math.abs((deltaX + ));
+          newWidth += Math.abs(deltaX);
         }
       }
       console.log(this.props.position);
       if (deltaX < 0) {
         // If the element is shrinking on the right side
         if (withinPosition('right') && withinSize()) {
-          newWidth = Math.max(newWidth - deltaX, this.props.parent.width * 0.55);
+          newWidth = Math.max(newWidth - Math.abs(deltaX), this.props.parent.width * 0.55);
           // If the element is growing on the left side
         } else if (withinPosition('left') && withinSize(true)) {
           newWidth += Math.abs(deltaX);
@@ -442,13 +436,13 @@ function getRndBndProps(this: React.Component<RndBndProps, RndBndStates>, ref: R
   return rndBndProps;
 }
 
-
-const additionalProps: RndBndProps = {
-  getRef() {
-    const ref = React.createRef<Rnd>();
-    if (ref.current) return ref.current;
-  },
-  container: additionalProps.getRef(),
+function getRef() {
+  const ref = React.createRef<Rnd>();
+  if (ref.current) return ref.current;
+}
+const additionalProps: RndBndProps = getRef() ? {
+  getRef: getRef,
+  container: getRef(),
   binarySearchRange: (size: number, range: Range): number => {
     let low = 0;
     let high = range.length - 1;
@@ -477,7 +471,7 @@ const additionalProps: RndBndProps = {
     return {
       x: this.range.width[xDiffs.indexOf(xClosest)],
       y: this.range.height[yDiffs.indexOf(yClosest)],
-    }
+    };
   },
   getPosition(position: Position): Position {
     const xIndice = this.binarySearchRange(position.x, this.range.width);
@@ -485,9 +479,9 @@ const additionalProps: RndBndProps = {
     return {
       x: this.range.width[xIndice],
       y: this.range.height[yIndice],
-    }
+    };
   },
-}
+} : {};
 const RndWithRef = React.forwardRef<React.RefObject<Rnd>, RndProps>((props, ref) => {
   return (
     <Rnd ref={ ref } { ...props } />
@@ -503,7 +497,7 @@ function makeDraggable<PR extends RndBndProps, S extends RndBndStates, P extends
       </Rnd>
     )
   })
-  return class Draggable<Props extends PR, State extends S> extends React.Component<Props, State>, DraggableComponent implements Props {
+  return class Draggable<Props extends PR, State extends S> extends React.Component<Props, State> implements Props {
     setMouseData(this: React.Component<Props, State>, mouseData: Partial<MouseData>) {
       this.setState((prev) => ({ ...prev, ...mouseData }));
     };
@@ -660,7 +654,6 @@ function makeDraggable<PR extends RndBndProps, S extends RndBndStates, P extends
         this.setState((prev) => ({ ...prev, height: Math.max(minSize.height, parseFloat(String(this.state.height))) }));
       }
     }
-
     onMouseMove(e: DraggableEvent, el?: React.Ref<Rnd>) {
       if (!this.state.isDragging) return;
       const { clientX, clientY } = e as React.MouseEvent;
@@ -719,7 +712,6 @@ function makeDraggable<PR extends RndBndProps, S extends RndBndStates, P extends
           this.setState((prev) => ({ ...prev, width: this.state.width + Math.abs(deltaX) }));
         }
       }
-      rnd!: Rnd;
       if (deltaY > 0) {
         this.setState((prev) => ({ ...prev, y: Math.max(topDistance + deltaY, topDistance) }))
         // If the element is shrinking on the top side

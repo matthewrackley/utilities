@@ -17,6 +17,7 @@ import { ThemeProvider, ThemeContext } from 'styled-components';
 import Theme from '@theme';
 import { PropArea } from '@app/propArea';
 import { ModuleProvider } from '@context/moduleContext';
+import CountryProvider from '@context/countryContext';
 
 const GlobalStyle = createGlobalStyle`
 :root {
@@ -168,39 +169,40 @@ export const App: React.FC = () => {
     <>
       <ThemeProvider theme={ { ...Theme } } >
         <GlobalStyle />
-        <Router>
-          <div className="container">
-            <div className="header"></div>
-            <div className="nav-col">
-              <div className="btn-col"></div>
-            </div>
-            <PropArea/>
-            {/* <div className="prop-area">
-            <h1 className="prop-area-header"></h1>
-            <div className="resize-area">
-              <div className="prop-box">
-                <Routes>
-                  <Route path="/" element={ <></> } />
-                  <Route path="/contact" element={ <></> } />
-                  <Route path="/about" element={ <></> } />
-                </Routes>
-                <PhoneNumberInput />
+        <CountryProvider initialCountry={'US'}>
+          <Router>
+            <div className="container">
+              <div className="header"></div>
+              <div className="nav-col">
+                <div className="btn-col"></div>
               </div>
-            </div>*/}
-            <div className="prop-select">
-              <div className="prop-select-headers"></div>
-              <div className="prop-list">
+              <PropArea/>
+              {/* <div className="prop-area">
+              <h1 className="prop-area-header"></h1>
+              <div className="resize-area">
+                <div className="prop-box">
+                  <Routes>
+                    <Route path="/" element={ <></> } />
+                    <Route path="/contact" element={ <></> } />
+                    <Route path="/about" element={ <></> } />
+                  </Routes>
+                  <PhoneNumberInput />
+                </div>
+              </div>*/}
+              <div className="prop-select">
+                <div className="prop-select-headers"></div>
+                <div className="prop-list">
+                </div>
+                <div className="prop-categories"></div>
               </div>
-              <div className="prop-categories"></div>
-            </div>
-
-            <div className="btm-util">
-              <div className="param-proto"></div>
-              <div className="theming"></div>
-            </div>
-            <div className="footer"></div>
-          </div >
-        </Router>
+              <div className="btm-util">
+                <div className="param-proto"></div>
+                <div className="theming"></div>
+              </div>
+              <div className="footer"></div>
+            </div >
+          </Router>
+        </CountryProvider>
       </ThemeProvider>
     </>
   );

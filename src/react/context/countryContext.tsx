@@ -4,13 +4,17 @@
  * @author Matthew Allen Rackley
  * @copyright [Matthew Rackley's Github](https://www.github.com/matthewrackley "Matthew Rackley on github.com")
  */
-import { Countries, type RegionCode, type CountryArray, type CountriesData } from '@countries/countries';
-import React, { createContext, useContext } from 'react';
+import countries, { isZoneRegions } from '@countries';
+import React, { createContext, useContext, useState } from 'react';
 import useCountry from '@hooks/useCountry';
 
 //___=============================>                 <============================___\\
 //___|| ==================== ||      CONTEXT SETUP      || =================== ||___\\
 //___=============================>                 <============================___\\
+
+type HandleZones = (e: React.ChangeEvent<HTMLSelectElement>) => void;
+type UseZones = (props: Omit<Props, 'children'>) => [Country<RegionCode>, HandleCountry, ZonesOf<ZoneRegions>, HandleZones];
+type HandleCountry = (event: React.ChangeEvent<HTMLSelectElement>) => void;
 /**
  * @interface CountryContextType
  * @description - The context type for the country context
@@ -18,8 +22,10 @@ import useCountry from '@hooks/useCountry';
  * @property {React.HandleSelect} handleCountry
  */
 export interface CountryContextType {
-  country: CountriesData[RegionCode];
-  handleCountry: (event: React.ChangeEvent<HTMLSelectElement>) => void;
+  zones: ZonesOf<ZoneRegions>
+  handleZones: HandleZones;
+  country: Country<RegionCode>;
+  handleCountry: HandleCountry;
 }
 /**
  * @constant CountryContext
@@ -35,7 +41,7 @@ export const CountryContext = createContext<CountryContextType | undefined>(unde
 export const useCountryContext = () => {
   const context = useContext(CountryContext);
   if (context === undefined) {
-    throw new Error('useMyContext must be used within a MyProvider');
+    throw new Error('useCountryContext must be used within a CountryProvider');
   }
   return context;
 };
@@ -55,11 +61,26 @@ interface Props {
   initialCountry: RegionCode;
   children: React.ReactNode;
 }
-export const CountryProvider: React.FC<Props> = (props) => {
+const useZones: UseZones = (props) => {
   const [country, handleCountry] = useCountry(props.initialCountry);
-
+  let zones: ZonesOf<ZoneRegions>, setZones: React.Dispatch<React.SetStateAction<ZonesOf<ZoneRegions>>>;
+  if (isZoneRegions(country.regionCode)) {
+    [zones, setZones] = useState<ZonesOf<ZoneRegions>>(countries.getZones(country.regionCode) as ZonesOf<ZoneRegions>);
+  } else {
+    throw new TypeError(`RegionCode must be of type: ZoneRegions`)
+  }
+  const handleZones: HandleZones = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    handleCountry(e);
+    if (isZoneRegions(e.target.value)) {
+      setZones(countries.getZones(e.target.value));
+    }
+  };
+  return [country, handleCountry, zones, handleZones] as [Country<RegionCode>, HandleCountry, ZonesOf<ZoneRegions>, HandleZones]
+}
+export const CountryProvider: React.FC<Props> = (props) => {
+  const [country, handleCountry, zones, handleZones] = useZones(props);
   return (
-    <CountryContext.Provider value={{ country, handleCountry }}>
+    <CountryContext.Provider value={{ zones, handleZones, country, handleCountry }}>
       { props.children }
     </CountryContext.Provider>
   );

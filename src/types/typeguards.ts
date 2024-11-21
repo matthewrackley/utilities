@@ -4,8 +4,7 @@
  * @author Matthew Allen Rackley
  * @copyright [Matthew Rackley's Github](https://www.github.com/matthewrackley "Matthew Rackley on github.com")
  */
-import { Email, url } from "./specializedTypes.ts";
-import Util from './utilityTypes';
+
 export type EmailTypeGuard = (email: Email) => email is Email;
 export const isValidEmail = (email: Email): email is Email => {
   const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
@@ -49,7 +48,7 @@ export function isObject<T extends object>(value: T): value is T {
   return typeof value === 'object' && value !== null;
 }
 
-export function isValidUrl(url: url): url is url {
+export function isValidUrl(url: Url): url is Url {
   const re = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/;
   return re.test(url);
 };

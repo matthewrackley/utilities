@@ -1,3 +1,26 @@
+/*
+ *   Copyright (c) 2024 Matthew Allen Rackley
+ *   All rights reserved.
+
+ *   Permission is hereby granted, free of charge, to any person obtaining a copy
+ *   of this software and associated documentation files (the "Software"), to deal
+ *   in the Software without restriction, including without limitation the rights
+ *   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ *   copies of the Software, and to permit persons to whom the Software is
+ *   furnished to do so, subject to the following conditions:
+
+ *   The above copyright notice and this permission notice shall be included in all
+ *   copies or substantial portions of the Software.
+
+ *   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ *   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ *   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ *   SOFTWARE.
+ */
+
 /**
  * @file fileViewer.tsx
  * @description
@@ -5,84 +28,443 @@
  * @copyright [Matthew Rackley's Github](https://www.github.com/matthewrackley "Matthew Rackley on github.com")
  */
 
-import React, { useEffect, useRef, useState } from 'react';
-import { Rnd, DraggableData, type RndResizeCallback, type RndDragCallback, type RndResizeStartCallback, type RndDragEvent, Position } from 'react-rnd';
-import { DraggableEvent } from 'react-draggable';
-import { ResizeDirection } from 're-resizable';
-import { Route, Routes, useParams } from 'react-router-dom';
-import ResizeArea, { type SimpleCSSSize, type ChildProps, ParentSize } from './resizeArea';
-import DynamicLoader from './dynamicLoader';
-import { ErrorMessage } from 'formik';
-import PhoneNumberInput from '@components/headless/phoneNumberInput';
-import CountrySelector from '@components/headless/countrySelector';
-import { ModuleConsumer, ModuleContext, useModuleContext } from '@context/moduleContext';
-import { Bounds, Percentage, PercentOfParent } from './types/RndBnd.types';
-import { isPercent } from './draggable';
-import Lock, { HandleLock, useLock } from '@assets/lock';
+import React from 'react';
+import { Rnd } from 'react-rnd';
+
+import styled from 'styled-components';
+
+export const percents: Percentage[] = [0.04, 0.06, 0.07, 0.08, 0.16, 0.17, 0.18, 0.19, 0.27, 0.28, 0.29, 0.31, 0.38, 0.39, 0.41, 0.42, 0.49, 0.51, 0.52, 0.53, 0.61, 0.62, 0.63, 0.64, 0.72, 0.73, 0.74, 0.76, 0.83, 0.84, 0.86, 0.87, 0.94, 0.96, 0.97, 0.98, 0.01, 0.02, 0.03, 0.05, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15, 0.20, 0.21, 0.22, 0.23, 0.24, 0.25, 0.26, 0.30, 0.32, 0.33, 0.34, 0.40, 0.43, 0.44, 0.45, 0.46, 0.47, 0.48, 0.35, 0.36, 0.68, 0.69, 0.70, 0.71, 0.65, 0.66, 0.67, 0.37, 0.50, 0.54, 0.55, 0.56, 0.57, 0.58, 0.59, 0.60, 0.75, 0.77, 0.78, 0.79, 0.80, 0.81, 0.82, 0.85, 0.88, 0.89, 0.90, 0.91, 0.92, 0.93, 0.95, 0.99, 0.125, 0.175, 0.225, 0.025, 0.075, 0.275, 0.325, 0.375, 0.425, 0.625, 1.00, 0.675, 0.525, 0.475, 0.575, 0.725, 0.775, 0.825, 0.875, 0.925, 0.975, 0.09090909090909091, 0.08333333333333333, 0.0078125, 0.07692307692307693, 0.06666666666666667, 0.0625, 0.03571428571428571, 0.3333333333333333, 0.03125, 0.16666666666666666, 0.015625, 0.14285714285714285, 0.1111111111111111, 0.6875, 0.9921875, 0.8125, 0.9375, 0.6666666666666666, 0.1875, 0.42857142857142855, 0.96875, 0.3125, 0.625, 0.5555555555555556, 0.984375, 0.4375, 0.875, 0.5625];
+export function isFraction(fraction: string): fraction is Fraction {
+  if (Fractions[fraction as Fraction] === undefined) return false;
+  for (const key of Object.keys(Fractions) as Fraction[]) {
+    if (fraction === key) return true;
+  };
+  return false;
+}
+export function isPercentage(percentage: number): percentage is Percentage {
+  return percents.includes(percentage);
+}
 
 
-interface PositionMap {
-  x: [number, number, number, number, number, number, number, 0 | number, number, number, number, number, number, number, number];
-  y: [number, number, number, number, number, number, number, 0 | number, number, number, number, number, number, number, number];
+// Write a typeguard that checks and distinguishes the percent type to determine the percentage subtype
+export function isPercent<V extends Percentage>(percentage: V): percentage is V {
+  if (typeof percentage === 'number') {
+    return percentage >= 0 && percentage <= 1;
+  } else if (typeof percentage === 'string') {
+    return Fractions.hasOwnProperty(percentage);
+  } else {
+    return false;
+  }
 }
-interface Size {
-  width: number;
-  height: number;
+function shouldMove(this: FileViewer, direction: Direction, d: DraggableData) {
+  const { width, height } = this.size;
+  const { left, top, right, bottom, height: rectHeight, width: rectWidth } = this.domRect;
+  const { left: parentLeft, top: parentTop, right: parentRight, bottom: parentBottom } = this.parent.ref.current?.getBoundingClientRect()!;
+  const parentData = this.props.parent;
+
+  const isSouth = d.deltaY !== 0 && d.y + parseFloat(String(this.state.height)) <= bottom;
+  const isNorth = d.deltaY !== 0 && d.y + parseFloat(String(this.state.height)) <= top;
+  const isEast = d.deltaX !== 0 && d.x + parseFloat(String(this.state.width)) <= right;
+  const isWest = d.deltaX !== 0 && d.x + parseFloat(String(this.state.width)) <= left;
+  if (direction.includes('left')) {
+    if (direction === 'bottomLeft') return isSouth && isWest;
+    if (direction === 'topLeft') return isNorth && isWest;
+    return isWest;
+  }
+  if (direction.includes('top')) {
+    if (direction === 'topLeft') return isNorth && isWest;
+    if (direction === 'topRight') return isNorth && isEast;
+    return isNorth;
+  }
+  if (direction.includes('right')) {
+    if (direction === 'topRight') return isNorth && isEast;
+    if (direction === 'bottomRight') return isSouth && isEast;
+    return isEast;
+  }
+  if (direction.includes('bottom')) {
+    if (direction === 'bottomRight') return isSouth && isEast;
+    if (direction === 'bottomLeft') return isSouth && isWest;
+    return isSouth;
+  }
 }
-type Range = [number, number, number, number, number, number, number, 0, number, number, number, number, number, number, number];
-type SizeRange = {
-  readonly width: Range;
-  readonly height: Range;
+function setMouseData(this: FileViewer, mouseData: Partial<MouseData>) {
+  this.setState({ ...this.state, ...mouseData });
 };
+function setPosition(this: FileViewer, position: Partial<Position>) {
+  this.setState({ ...this.state, ...position });
+};
+function setSize(this: FileViewer, size: Partial<Size>) {
+  this.setState({ ...this.state, ...size });
+};
+function setStatus(this: FileViewer, status: Partial<Status>) {
+  this.setState({ ...this.state, ...status });
+};
+function setDimensions(this: FileViewer, dimensions: Partial<Size & Position>) {
+  this.setState({ ...this.state, ...dimensions });
+};
+function getUseableStyles(this: FileViewer, el: React.RefObject<HTMLDivElement>) {
+  if (!el.current) {
+    console.error(`Element is not attached!\nRef:\n${el}\nCurrent:\n${el.current}`);
+    return null as never;
+  }
+  return window.getComputedStyle(el.current);
+}
+function getMouseData(this: FileViewer, ev: DraggableEvent): MouseData {
+  let mouseData = {} as MouseData;
+  if (!this.parent.ref.current) {
+    console.error(`Parent ref not attached!\nParent Ref:\n${this.parent.ref}\nParent Ref Current:\n`, this.parent.ref.current);
+    return void 0 as never;
+  }
+  const { left: parentLeft, right: parentRight, top: parentTop, bottom: parentBottom } = this.parent.ref.current.getBoundingClientRect();
+  let mouseX = 0;
+  let mouseY = 0;
+  let touch = {} as Touch | React.Touch | null;
+  if (ev instanceof MouseEvent) {
+    mouseX = ev.clientX;
+    mouseY = ev.clientY;
+  } else if (ev.target instanceof MouseEvent) {
+    mouseX = ev.target.clientX;
+    mouseY = ev.target.clientY;
+  }
+  if (ev instanceof TouchEvent) {
+    touch = ev.touches[0] || ev.changedTouches[0];
+    if (touch) {
+      mouseX = touch.clientX;
+      mouseY = touch.clientY;
+    }
+  }
+  mouseData.lastMouseX = this.state.lastMouseX === 0 ? mouseX : this.state.lastMouseX;
+  mouseData.lastMouseY = this.state.lastMouseY === 0 ? mouseY : this.state.lastMouseY;
+  mouseData.currentX = mouseX;
+  mouseData.currentY = mouseY;
+  mouseData.distanceL = mouseX - parentLeft;
+  mouseData.distanceT = mouseY - parentTop;
+  mouseData.distanceR = parentRight - mouseX;
+  mouseData.distanceB = parentBottom - mouseY;
+  mouseData.deltaX = mouseX - mouseData.lastMouseX;
+  mouseData.deltaY = mouseY - mouseData.lastMouseY;
+  this.setState({ ...mouseData })
+  return mouseData;
+}
+function getStatus(this: FileViewer) {
+  return {
+    loading: this.state.loading,
+    errorMessage: this.state.errorMessage,
+    adjustingWidth: this.state.adjustingWidth,
+    adjustingHeight: this.state.adjustingHeight,
+    isDragging: this.state.isDragging
+  } as Status;
+};
+function getDimensions(this: FileViewer) {
+  return {
+    width: this.size.width,
+    height: this.size.height,
+    x: this.position.x,
+    y: this.position.y
+  } as Size & Position;
+}
+function setDefaultSize(this: FileViewer, percentages: Percents) {
+  const { width, height } = percentages;
+  return {
+    width: this.props.parent.size.width * width,
+    height: this.props.parent.size.height * height,
+  } as Size;
+};
+function setDefaultPosition(this: FileViewer, percentages: Percents) {
+  const { width, height } = percentages;
+  return {
+    x: (this.props.parent.size.width - (this.props.parent.size.width * width)) / 2,
+    y: (this.props.parent.size.height - (this.props.parent.size.height * height)) / 2,
+  };
+};
+function adjustPosition(this: FileViewer, position: Position): Position {
+  const xDiffs = this.range.width.map(point => Math.abs(point - position.x));
+  const yDiffs = this.range.height.map(point => Math.abs(point - position.y));
+  const xClosest = Math.min(...xDiffs);
+  const yClosest = Math.min(...yDiffs);
+  return {
+    x: this.range.width[xDiffs.indexOf(xClosest)],
+    y: this.range.height[yDiffs.indexOf(yClosest)],
+  }
+}
+
+function adjustSize (this: FileViewer, size: Size): Size {
+  const xDiffs = this.range.width.map(point => Math.abs(point - size.width));
+  const yDiffs = this.range.height.map(point => Math.abs(point - size.height));
+  const xClosest = Math.min(...xDiffs);
+  const yClosest = Math.min(...yDiffs);
+  return {
+    width: this.range.width[xDiffs.indexOf(xClosest)],
+    height: this.range.height[yDiffs.indexOf(yClosest)],
+  }
+}
+function getPosition(this: FileViewer): Position {
+  return this.rnd?.getDraggablePosition()!;
+  // const xIndice = this.binarySearchRange(position.x, this.range.width);
+  // const yIndice = this.binarySearchRange(position.y, this.range.height);
+  // return {
+  //   x: this.range.width[xIndice],
+  //   y: this.range.height[yIndice],
+  // }
+
+}
+function getSize(this: FileViewer) {
+  const ref = this.rnd?.getSelfElement();
+  if (ref) {
+    return {
+      width: ref.offsetWidth,
+      height: ref.offsetHeight,
+    } as Size;
+  } else {
+    throw new Error(`Rnd Element not acquirable!\nRnd: ${this.rnd}\nRnd Element: ${this.rnd?.getSelfElement()}`)
+  }
+  /*this.ref.current?.getSelfElement()?.style.height
+  this.ref.current?.getSelfElement()?.style.width;
+  let yIndice = this.binarySearchRange(size.height, this.range.height);
+  let xIndice = this.binarySearchRange(size.width, this.range.width);
+  return {
+    width: this.range.width[xIndice],
+    height: this.range.height[yIndice]
+  }*/
+}
+function handleShrink(this: FileViewer) {
+  const { left, top, right, bottom, height, width } = this.domRect;
+  const { left: parentLeft, top: parentTop, right: parentRight, bottom: parentBottom } = this.parent.ref.current?.getBoundingClientRect()!;
+  const distanceLeft = left - parentLeft;
+  const distanceRight = parentRight - right;
+  const distanceTop = top - parentTop;
+  const distanceBottom = parentBottom - bottom;
+  const shrinkFactor = Math.min(
+    distanceTop / height,
+    distanceLeft / width,
+    distanceBottom / height,
+    distanceRight / width
+  )
+  this.setState({
+    width: `${width * (1 - shrinkFactor)}px`,
+    height: `${height * (1 - shrinkFactor)}px`
+  })
+}
+function getParentRect(this: FileViewer) {
+  if (!this.parent.ref.current) {
+    console.error(`Parent ref not attached!\nParent Ref:\n${this.parent.ref}\nParent Ref Current:\n`, this.parent.ref.current);
+    return null as never;
+  }
+  return this.parent.ref.current.getBoundingClientRect();
+}
+
+function handleResize(this: FileViewer, e: MouseEvent | TouchEvent, direction: Direction, ref: HTMLElement, d: ResizableDelta, pos: Position) {
+  const mouse = this.getMouseData(e);
+  const { left, right, top, bottom } = this.parentRect;
+  const movingL = direction === 'left' || direction === 'bottomLeft' || direction === 'topLeft';
+  const movingR = direction === 'right' || direction === 'bottomRight' || direction === 'topRight';
+  const movingU = direction === 'top' || direction === 'topLeft' || direction === 'topRight';
+  const movingD = direction === 'bottom' || direction === 'bottomLeft' || direction === 'bottomRight';
+  if (movingL || movingR && pos.x + this.size.width <= right) {
+    // Going Left & Touching Left
+    if (movingL && pos.x === left) {
+      this.handleShrink();
+    } else {
+      this.setState({ width: this.size.width + mouse.deltaX});
+    }
+    // Going Right & Touching Right
+    if (movingR && pos.x + this.size.width === right) {
+      this.handleShrink();
+    } else {
+      this.setState({ width: this.size.width + mouse.deltaX });
+    }
+  }
+  if (movingU || movingD && pos.y + this.size.height <= bottom) {
+    // Going Up & Touching Top
+    if (movingU && pos.y === top) {
+      this.handleShrink();
+    } else {
+      this.setState({ height: this.size.height + mouse.deltaY })
+    }
+    // Going Down & Touching Bottom
+    if (movingD && pos.y + this.size.height === bottom) {
+      this.handleShrink();
+    } else {
+      this.setState({ height: this.size.height + mouse.deltaY });
+    }
+  }
+};
+function onDrag (this: FileViewer, e: DraggableEvent, d: DraggableData) {
+  const { width, height } = this.props.parent.size;
+  const parentRect = this.parentRect;
+  const selfRect = d.node.getBoundingClientRect();
+  console.log(`Draggable Data:\n`, d)
+
+  this.setState({ lastMouseX: d.lastX, lastMouseY: d.lastY, deltaX: d.deltaX, deltaY: d.deltaY, currentX: d.x, currentY: d.y})
+  if (
+    (d.deltaY < 0 && Math.floor(selfRect.top) === Math.floor(parentRect.top)) ||
+    (d.deltaY > 0 && Math.floor(selfRect.bottom) === Math.floor(parentRect.bottom)) ||
+    (d.deltaX < 0 && Math.floor(selfRect.left) === Math.floor(parentRect.left)) ||
+    (d.deltaX > 0 && Math.floor(selfRect.right) === Math.floor(parentRect.right))
+  ) {
+    this.handleShrink();
+  }
+}
+function onResizeStop(this: FileViewer, e: MouseEvent | TouchEvent, dir: Direction, ref: HTMLElement, delta: ResizableDelta, position: Position) {
+  this.broadcastEvent();
+  this.setState({
+    width: ref.offsetWidth as CSSSize,
+    height: ref.offsetHeight as CSSSize,
+    ...position,
+    adjustingHeight: false,
+    adjustingWidth: false
+  });
+}
+function onResize(this: FileViewer, e: MouseEvent | TouchEvent, direction: Direction, ref: HTMLElement, delta: ResizableDelta, position: Position) {
+  console.log('ref', ref)
+  this.broadcastEvent();
+  this.setState({ width: ref.offsetWidth, height: ref.offsetHeight, ...position })
+};
+function onDragStop(this: FileViewer, event: DraggableEvent, data: DraggableData) {
+  this.broadcastEvent();
+  this.setState({ x: data.x, y: data.y, lastMouseY: data.lastY, lastMouseX: data.lastX, deltaX: data.deltaX, deltaY: data.deltaY, isDragging: false });
+}
+function onDragStart(this: FileViewer, e: DraggableEvent, d: DraggableData) {
+  this.broadcastEvent();
+  this.setState({ x: d.x, y: d.y, lastMouseX: d.x, lastMouseY: d.y, isDragging: true })
+}
+function componentDidMount(this: FileViewer): void {
+  this.broadcastEvent();
+  const domRect = this.parentElement?.getBoundingClientRect()!;
+  console.log('getSelfElement().style.height: ', this.rndRef.current?.getSelfElement()?.style.height);
+  console.log('rnd:\n', this.rnd);
+  this.rndElement = this.rnd?.getSelfElement() as HTMLDivElement | null;
+  const parentEl = this.rndElement?.parentElement;
+  this.setMin(this.childRef);
+  let childHeight, childWidth, parentWidth, parentHeight, width, height;
+  if (this.childRef.current) {
+    const computedStyles = window.getComputedStyle(this.childRef.current)
+    childHeight = parseFloat(computedStyles.getPropertyValue('height'));
+    childWidth = parseFloat(computedStyles.getPropertyValue('width'));
+    console.log('ChildHeight:', childHeight, 'ChildWidth:', childWidth);
+  }
+  if (this.rndElement) {
+    const computedStyles = window.getComputedStyle(this.rndElement);
+    width = parseFloat(computedStyles.getPropertyValue('width'));
+    height = parseFloat(computedStyles.getPropertyValue('height'));
+    console.log('Width:', width, 'Height:', height);
+    this.setState({ width: this.rndElement.offsetWidth, height: this.rndElement.offsetHeight});
+  }
+  if (parentEl) {
+    const computedStyles = window.getComputedStyle(parentEl);
+    parentWidth = parseFloat(computedStyles.getPropertyValue('width'));
+    parentHeight = parseFloat(computedStyles.getPropertyValue('height'));
+    console.log('ParentEl:', parentEl.style.height, parentEl.style.width)
+  }
+  this.defaults = {
+    ...this.defaults,
+    width: this.defaults.width || 0.55 * this.props.parent.size.width,
+    height: this.defaults.height || 0.55 * this.props.parent.size.height,
+    x: (parentWidth || this.rnd?.getParentSize().width! - (parentWidth || this.rnd?.getParentSize().width! * 0.55)) / 2,
+    y: (parentHeight || this.rnd?.getParentSize().height! - (parentHeight || this.rnd?.getParentSize().height! * 0.55)) / 2,
+    css: { ...defaultStyles, ...this.defaults.css }
+  };
+  const defaults = {
+    width: (childWidth || this.defaults.width || 0.55 * this.props.parent.size.width) as CSSSize | number,
+    height: (childHeight || this.defaults.height || 0.55 * this.props.parent.size.height) as CSSSize | number,
+    x: (this.props.parent.size.width - (this.props.parent.size.width * 0.55)) / 2,
+    y: (this.props.parent.size.height - (this.props.parent.size.height * 0.55)) / 2,
+  };
+  if (this.state.width === 0 && this.state.height === 0 && this.state.x === 0 && this.state.y === 0) {
+    this.setState({ width: defaults.width, height: defaults.height, x: defaults.x, y: defaults.y });
+  }
+
+  this.rndElement?.addEventListener('dblclick', (e) => {
+    e.preventDefault();
+    this.setState({ width: this.defaults.width! as CSSSize | number, height: this.defaults.height! as CSSSize | number });
+  });
+  this.childRef.current
+
+  /*{
+    // if (this.position.x === 0 && deltaX < 0) {
+    //   // If the element is shrinking on the right side
+    //   if (withinPosition('right') && withinSize()) {
+    //     newWidth = (parent.width * 0.225) + (this.stateDefault.width - (parent.width * 0.225)) * (1 - distanceLeft);
+    //     // If the element is growing on the left side
+    //   } else if (withinPosition('left') && withinSize(true)) {
+    //     newWidth = (this.stateDefault.width - (parent.width * 0.225)) * distanceRight + (this.parent.width * 0.225);
+    //   }
+    // }
+    // Assuming the element is at x = 0 and trying to move left
+    // if (this.position.x === 0 && deltaX > 0) {
+    //   newWidth += Math.abs(deltaX); // Increase width as we're simulating a move left
+    // } else if (this.position.x + this.size.width < this.stateDefault.x && deltaX < 0) {
+    //   // Decrease width or move right if possible
+    //   newWidth = Math.max(newWidth - deltaX, this.parent.width * 0.55);
+    // }
+    // const position = this.ref.current?.getDraggablePosition()!;
+    // Update the element with the new width
+
+  }*/
+}
+const handleClasses: HandleClasses = {
+  bottom: 's-handle',
+  left: 'w-handle',
+  right: 'e-handle',
+  top: 'n-handle',
+  bottomLeft: 'sw-handle',
+  bottomRight: 'se-handle',
+  topLeft: 'nw-handle',
+  topRight: 'ne-handle',
+}
 
 
-export type FileList = string[];
-export interface FileData {
-  directory: string;
-  files: FileList;
+const defaultStyles = {
+  position: 'relative' as CSSPosition,
+  display: 'flex' as CSSDisplay,
+  'max-width': '100%' as CSSSize,
+  'min-width': 'fit-content' as CSSSize,
 }
-interface Size {
-  width: number;
-  height: number;
-}
-interface DraggableState {
-  width: number | string;
-  height: number | string;
-  x: number;
-  y: number;
-  loading: boolean;
-  locked: boolean;
-  errorMessage: string;
-  components: React.ComponentType<any>[];
-  adjustingWidth: boolean;
-  adjustingHeight: boolean;
-  lastMouseX: number;
-  isDragging: boolean;
-  lastMouseY: number;
-}
-interface Percents {
-  width: Percentage;
-  height: Percentage;
-}
-type XandY = 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight';
-type XorY = 'top' | 'bottom' | 'left' | 'right';
-type Props<T extends object = {}> = {
-  parent: ParentData;
-  locked: boolean;
-  minSize?: Percents | 'fit-content';
-  maxSize?: Percents | 'fill-parent';
-  handleLock: HandleLock;
-  defaultSize?: Percents | Size;
-} & T;
+const StyledRnd = styled(Rnd).attrs<StyledRndProps>((attr) => {
+  return {
+    className: `${attr.className || 'rnd-container'} ${attr.lockClassName || 'rnd-container'}`,
+    style: attr.style || {},
+  };
+}) <StyledRndProps>`
 
-interface ParentData {
-  bounds: Bounds;
-  size: Size;
-  ref: HTMLDivElement | React.RefObject<HTMLDivElement>;
+  &.${props => props.className} {
+    ${(props) => `${
+      { ...props.defaults }
+    }`}
+  }
+  &.${props => props.lockClassName} {
+    position: 'absolute';
+  }
+  &.locked {
+    position: fixed;
+    top: ${(props) => props.style?.top};
+    left: ${(props) => props.style?.left};
+    width: ${(props) => props.style?.width};
+    height: ${(props) => props.style?.height};
+    pointer-events: none;
+  }
+`;
+function isPercents(percentages: Size | string | number | undefined): percentages is Percents {
+  return percentages !== undefined &&
+    typeof percentages === 'object' &&
+    isPercent(percentages.width) &&
+    isPercent(percentages.height);
 }
-class FileViewer<P extends object> extends React.Component<Props<P>, DraggableState> {
+function broadcastEvent(this: FileViewer) {
+  const customEvent = new CustomEvent('onResize');
+  const child = this.childRef.current || document.getElementById(this.props.child.id!);
+  const ld = document.getElementById(this.props.ld.id);
+  if (child) {
+    child.dispatchEvent(customEvent);
+  }
+  if (ld) {
+    ld.dispatchEvent(customEvent);
+  }
+}
 
-  private binarySearchRange = (size: number, range: Range): number => {
+class FileViewer extends React.Component<FVProps, DraggableState> {
+
+  private binarySearchRange = (size: number, range: SizeRange): number => {
     let low = 0;
     let high = range.length - 1;
 
@@ -103,552 +485,237 @@ class FileViewer<P extends object> extends React.Component<Props<P>, DraggableSt
     return (Math.abs(range[low] - size) < Math.abs(range[high] - size)) ? range[low] : range[high];
   };
   state: DraggableState;
-  fv: FileViewer<P>;
-  rnd: Rnd;
+  fv: FileViewer;
+  rnd: Rnd | null = null;
+  rndElement: HTMLDivElement | null = null;
   parent: ParentData;
-  minSize: Percents | 'fit-content';
-  maxSize: Percents | 'fill-parent';
-  locked: boolean;
-  setLocked: React.Dispatch<React.SetStateAction<boolean>> = () => {
-    return this.setState((prevState) =>({ ...prevState, locked: !this.state.locked }));
-  }
-  constructor(props: Props<P>) {
+  broadcastEvent = broadcastEvent.bind(this);
+  childRef: React.RefObject<HTMLDivElement>;
+  childElement: HTMLDivElement | null = null;
+  parentElement: HTMLDivElement | null = null;
+  private minSize!: Percents | 'fit-content';
+  private maxSize!: Percents | 'fill-parent' | 'fit-content';
+  defaultSize!: Percents | Size | "fit-content";
+  defaults = {} as DefaultData;
+  constructor(props: FVProps) {
     super(props);
-    const [locked, handleLock] = useLock(props.locked, this.setLocked);
     this.parent = props.parent;
-    this.locked = locked;
-    this.handleLocked = handleLock;
-    this.minSize = props.minSize || { width: 0.225, height: 0.225 };
-    this.maxSize = props.maxSize || 'fill-parent';
-    const def = (props.defaultSize || { width: 0.55, height: 0.55 }) as Size | { width: Percentage; height: Percentage; };
-    let defData = {} as Size & Position;
-    if (isPercent(def.width) && isPercent(def.height)) {
-      defData = this.setDefault(def, props.parent);
-    } else {
-      defData = {
-        ...def,
-        x: (props.parent.size.width - def.width) / 2,
-        y: (props.parent.size.height - def.height) / 2
-      };
-    }
+    this.childRef = props.childRef;
+
     console.log('props', props);
     this.state = {
-      width: defData.width,
-      height: defData.height,
-      x: defData.x,
-      y: defData.y,
+      width: 'auto',
+      height: 'auto',
+      x: 0,
+      y: 0,
       loading: true,
       locked: props.locked,
       errorMessage: '',
-      components: [] as React.ComponentType<P>[],
+      components: [] as React.ComponentType<ChildProps>[],
       adjustingWidth: false,
       adjustingHeight: false,
       lastMouseX: 0,
       isDragging: false,
       lastMouseY: 0,
+      deltaX: 0,
+      deltaY: 0,
+      distanceL: 0,
+      distanceT: 0,
+      distanceR: 0,
+      distanceB: 0,
+      currentX: 0,
+      currentY: 0
     };
     this.fv = this;
-    this.rnd = this.ref.current!;
   }
-  setDefault = (percentages: { width: Percentage, height: Percentage; }, parentData: ParentData) => {
-    const { width, height } = percentages;
-    return {
-      width: parentData.size.width * width,
-      height: parentData.size.height * height,
-      x: (parentData.size.width - (parentData.size.width * width)) / 2,
-      y: (parentData.size.height - (parentData.size.height * height)) / 2,
-    }
-  };
-  range: SizeRange = {
+
+  setMouseData = setMouseData.bind(this);
+  setPosition = setPosition.bind(this);
+  setSize = setSize.bind(this);
+  setStatus = setStatus.bind(this);
+  setDimensions = setDimensions.bind(this);
+  getUseableStyles = getUseableStyles.bind(this);
+  getMouseData = getMouseData.bind(this);
+  get status() { return getStatus.bind(this)(); };
+  get dimensions() { return getDimensions.bind(this)(); };
+  setDefaultSize = setDefaultSize.bind(this);
+  setDefaultPosition = setDefaultPosition.bind(this);
+  range: SizeRanges = {
     width: [-this.props.parent.size.width, -this.props.parent.size.width * 0.9, -this.props.parent.size.width * 0.775, -this.props.parent.size.width * 0.625, -this.props.parent.size.width * 0.375, -this.props.parent.size.width * 0.225, -this.props.parent.size.width * 0.1, 0, this.props.parent.size.width * .1, this.props.parent.size.width * .225, this.props.parent.size.width * .375, this.props.parent.size.width * .625, this.props.parent.size.width * .775, this.props.parent.size.width * .9, this.props.parent.size.width],
     height: [-this.props.parent.size.height, -this.props.parent.size.height * 0.9, -this.props.parent.size.height * 0.775, -this.props.parent.size.height * 0.625, -this.props.parent.size.height * 0.375, -this.props.parent.size.height * 0.225, -this.props.parent.size.height * 0.1, 0, this.props.parent.size.height * .1, this.props.parent.size.height * .225, this.props.parent.size.height * .375, this.props.parent.size.height * .625, this.props.parent.size.height * .775, this.props.parent.size.height * .9, this.props.parent.size.height]
   }
-  adjustmentRange: SizeRange = {
+  positionMap: PositionMap = {
+    x: [-this.props.parent.bounds.left, -this.props.parent.bounds.left * 0.9, -this.props.parent.bounds.left * 0.775, -this.props.parent.bounds.left * 0.625, -this.props.parent.bounds.left * 0.375, -this.props.parent.bounds.left * 0.225, -this.props.parent.bounds.left * 0.1, 0, this.props.parent.bounds.left * .1, this.props.parent.bounds.left * .225, this.props.parent.bounds.left * .375, this.props.parent.bounds.left * .625, this.props.parent.bounds.left * .775, this.props.parent.bounds.left * .9, this.props.parent.bounds.left],
+    y: [-this.props.parent.bounds.top, -this.props.parent.bounds.top * 0.9, -this.props.parent.bounds.top * 0.775, -this.props.parent.bounds.top * 0.625, -this.props.parent.bounds.top * 0.375, -this.props.parent.bounds.top * 0.225, -this.props.parent.bounds.top * 0.1, 0, this.props.parent.bounds.top * .1, this.props.parent.bounds.top * .225, this.props.parent.bounds.top * .375, this.props.parent.bounds.top * .625, this.props.parent.bounds.top * .775, this.props.parent.bounds.top * .9, this.props.parent.bounds.top]
+  }
+  adjustmentRange: SizeRanges = {
     width: [-this.props.parent.size.width, -this.props.parent.size.width * 0.925, -this.props.parent.size.width * 0.8, -this.props.parent.size.width * 0.685, -this.props.parent.size.width * 0.335, -this.props.parent.size.width * 0.200, -this.props.parent.size.width * 0.08, 0, this.props.parent.size.width * .08, this.props.parent.size.width * .200, this.props.parent.size.width * .335, this.props.parent.size.width * .685, this.props.parent.size.width * .8, this.props.parent.size.width * .925, this.props.parent.size.width],
     height: [-this.props.parent.size.height, -this.props.parent.size.height * 0.925, -this.props.parent.size.height * 0.8, -this.props.parent.size.height * 0.685, -this.props.parent.size.height * 0.335, -this.props.parent.size.height * 0.200, -this.props.parent.size.height * 0.08,0, this.props.parent.size.height * .08, this.props.parent.size.height * .200, this.props.parent.size.height * .335, this.props.parent.size.height * .685, this.props.parent.size.height * .8, this.props.parent.size.height * .925, this.props.parent.size.height]
   }
-  snapToGrid(position: Position): Position {
-    const xDiffs = this.range.width.map(point => Math.abs(point - position.x));
-    const yDiffs = this.range.height.map(point => Math.abs(point - position.y));
-    const xClosest = Math.min(...xDiffs);
-    const yClosest = Math.min(...yDiffs);
-    return {
-      x: this.range.width[xDiffs.indexOf(xClosest)],
-      y: this.range.height[yDiffs.indexOf(yClosest)],
-    }
-  }
+  adjustPosition = adjustPosition.bind(this);
 
-  private handleLocked: HandleLock;
-  adjustSize (size: Size): Size {
-    const xDiffs = this.range.width.map(point => Math.abs(point - size.width));
-    const yDiffs = this.range.height.map(point => Math.abs(point - size.height));
-    const xClosest = Math.min(...xDiffs);
-    const yClosest = Math.min(...yDiffs);
-    return {
-      width: this.range.width[xDiffs.indexOf(xClosest)],
-      height: this.range.height[yDiffs.indexOf(yClosest)],
-    }
-  }
-  getPosition(position: Position): Position {
-    const xIndice = this.binarySearchRange(position.x, this.range.width);
-    const yIndice = this.binarySearchRange(position.y, this.range.height);
-    return {
-      x: this.range.width[xIndice],
-      y: this.range.height[yIndice],
-    }
-
-  }
-  getSize(size: Size) {
-    let yIndice = this.binarySearchRange(size.height, this.range.height);
-    let xIndice = this.binarySearchRange(size.width, this.range.width);
-    return {
-      width: this.range.width[xIndice],
-      height: this.range.height[yIndice]
-    }
-  }
-  components: React.ElementType<P>[] = [];
-  setComponents: ((components: React.ElementType<P>[]) => void) = (components) => {
+  adjustSize = adjustSize.bind(this);
+  get position(): Position { return getPosition.bind(this)(); };
+  get size() { return getSize.bind(this)(); };
+  components: React.ElementType<ChildProps>[] = [];
+  setComponents: ((components: React.ElementType<ChildProps>[]) => void) = (components) => {
     this.components = components;
   };
-  errorMessage: string = '';
-  setErrorMessage: ((errorMsg: string) => void) = (errorMsg) => {
-    this.errorMessage = errorMsg;
-  };
 
-  apiFetch: ((url?: string) => void) = (url = '/api/files') => {
-    fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    }).then((response) => response.json())
-      .then((data: FileData) => this.setState({ filedata: data }))
-      .catch((error: Error) => console.error('Error fetching files:', error));
-  };
-
-
-  shouldMove = (e: React.RefObject<HTMLDivElement>, d: DraggableData, parentData: ParentData) => {
-    if (!e.current) return;
-    e.current.offsetLeft + e.current.offsetWidth >=
-    const right = (this.parent.width - parseFloat(String(this.state.width))) / 2;
+  handleShrink = handleShrink.bind(this);
+  shouldMove = shouldMove.bind(this);
+  get parentRect() {
+    if (!this.parent.ref.current) {
+      console.error(`Parent ref not attached!\nParent Ref:\n${this.parent.ref}\nParent Ref Current:\n`, this.parent.ref.current);
+      return null as never;
+    }
+    return this.parent.ref.current.getBoundingClientRect();
   }
-  handleResize = (e: React.MouseEvent, d: DraggableData) => {
-    (e.target instanceof HTMLDivElement)
-    const { width, height } = this.parent.size;
-    const { left, right, top, bottom } = this.parent.bounds;
-    let newWidth = parseFloat(String(this.state.width));
-    let newHeight = parseFloat(String(this.state.height));
-    this.parent.ref.current?.left
-    const minSize = {
-      width: 0.225 * this.parent.width,
-      height: 0.225 * this.parent.height,
-    };
-
-
-    if (d.deltaX !== 0 && d.x + parseFloat(String(this.state.width)) >= right) {
-      newWidth = Math.max(minSize.width, parseFloat(String(this.state.width)));
-    }
-
-    if (d.deltaY !== 0 && d.y + parseFloat(String(this.state.height)) >= bottom) {
-      newHeight = Math.max(minSize.height, parseFloat(String(this.state.height)));
-    }
-    this.setState({
-      width: newWidth,
-      height: newHeight,
-      x: d.x,
-      y: d.y,
-    });
-  };
-  ref: React.RefObject<Rnd> = React.createRef();
-
-  componentDidMount(): void {
-    this.apiFetch();
-    console.log(this.ref.current?.getSelfElement()?.style.height);
-    this.ref.current?.getSelfElement()?.addEventListener('dblclick', (e) => {
-      e.preventDefault();
-      this.setState({ ...this.stateDefault });
-    });
-    const rnd = this.rnd;
-    const getPosition = () => this.ref.current?.getDraggablePosition()!;
-    const getSize = () => {
-      const ref = this.ref.current?.getSelfElement()!;
-      return {
-        width: ref.offsetWidth,
-        height: ref.offsetHeight,
-      }
-    }
-    const parent = {
-      width: this.parent.width,
-      height: this.parent.height,
-    };
-    const onMouseMove = (event: MouseEvent, d: DraggableData) => {
-      if (!this.state.isDragging) return;
-      let deltaX = event.clientX - this.state.lastMouseX;
-      this.setState({ lastMouseX: event.clientX });
-      const target = event.target!;
-      let newWidth = parseFloat(this.state.width.toString());
-      const withinSize = (inc: boolean = false) => {
-        return !inc ? newWidth <= (parent.width * 0.225) : newWidth <= this.stateDefault.width;
-      }
-      const withinPosition = (side: 'right' | 'left' = 'left') => {
-        const right = getSize().width + getPosition().x;
-        const left = getPosition().x;
-        return side === 'left'
-          ? left >= 0 && left <= (parent.width * .225)
-          : right <= parent.width && right >= (parent.width * .625);
-      }
-      if (deltaX > 0) {
-        // If the element is shrinking on the left side
-        if (withinPosition() && withinSize()) {
-          newWidth = Math.max(newWidth - deltaX, this.parent.width * 0.55)
-        }
-        // If the element is growing on the right side
-        if (withinPosition('right') && withinSize(true)) {
-          newWidth += Math.abs(deltaX);
-        }
-      }
-      console.log(getPosition());
-      if (deltaX < 0) {
-        // If the element is shrinking on the right side
-        if (withinPosition('right') && withinSize()) {
-          newWidth = Math.max(newWidth - deltaX, this.parent.width * 0.55);
-          // If the element is growing on the left side
-        } else if (withinPosition('left') && withinSize(true)) {
-          newWidth += Math.abs(deltaX);
-        }
-      }
-      this.setState({ width: newWidth, ...getPosition() });
-    }
-    {
-      // if (getPosition().x === 0 && deltaX < 0) {
-      //   // If the element is shrinking on the right side
-      //   if (withinPosition('right') && withinSize()) {
-      //     newWidth = (parent.width * 0.225) + (this.stateDefault.width - (parent.width * 0.225)) * (1 - distanceLeft);
-      //     // If the element is growing on the left side
-      //   } else if (withinPosition('left') && withinSize(true)) {
-      //     newWidth = (this.stateDefault.width - (parent.width * 0.225)) * distanceRight + (this.parent.width * 0.225);
-      //   }
-      // }
-      // Assuming the element is at x = 0 and trying to move left
-      // if (getPosition().x === 0 && deltaX > 0) {
-      //   newWidth += Math.abs(deltaX); // Increase width as we're simulating a move left
-      // } else if (getPosition().x + getSize().width < this.stateDefault.x && deltaX < 0) {
-      //   // Decrease width or move right if possible
-      //   newWidth = Math.max(newWidth - deltaX, this.parent.width * 0.55);
-      // }
-      // const position = this.ref.current?.getDraggablePosition()!;
-      // Update the element with the new width
-
-    }
-    const onMouseUp = (event: MouseEvent) => {
-
-      this.setState({ isDragging: false });
-      document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', onMouseUp);
-    }
-    const fv = this;
-    const onMouseDown = (event: MouseEvent) => {
-      console.log(this.state.x);
-      console.log(getPosition())
-      this.setState({ isDragging: true });
-      this.setState({ lastMouseX: event.clientX });
-      this.ref.current?.getSelfElement()?.addEventListener('mousemove', onMouseMove);
-      this.ref.current?.getSelfElement()?.addEventListener('mouseup', onMouseUp);
-    }
-    this.ref.current?.getSelfElement()?.addEventListener('mousedown', onMouseDown);
+  handleResize = handleResize.bind(this);
+  onDrag = onDrag.bind(this);
+  onResizeStop = onResizeStop.bind(this);
+  get domRect() {
+    return this.rndRef.current?.getSelfElement()?.getBoundingClientRect()!;
   }
+  onResize = onResize.bind(this);
+  onDragStop = onDragStop.bind(this);
+  onDragStart = onDragStart.bind(this);
+  // onResizeStart: RndResizeStartCallback = (e, dir, elementRef) => {
+  //   const { width, height, x, y } = elementRef.style;
+  //   const { currentX: lastMouseX, currentY: lastMouseY } = this.getMouseData(e);
+  //   if (dir === 'left' || dir === 'bottomLeft' || dir === 'topLeft' || dir === 'bottomRight' || dir === 'right' || dir === 'topRight') {
+  //     if (dir === 'bottomLeft' || dir === 'topLeft' || dir === 'bottomRight' || dir === 'topRight') {
+  //       this.setState({ adjustingHeight: true, adjustingWidth: true, width: parseFloat(width), height: parseFloat(height), lastMouseX, lastMouseY });
+  //     } else {
+  //       this.setState({ adjustingWidth: true, width: parseFloat(width), height: parseFloat(height), lastMouseX, lastMouseY });
+  //     }
+  //   } else {
+  //     this.setState({ adjustingHeight: true, width: parseFloat(width), height: parseFloat(height), lastMouseX, lastMouseY });
+  //   }
+  // }d
+  ref: React.RefObject<FileViewer> = React.createRef();
+  rndRef: React.RefObject<Rnd> = React.createRef();
+  componentDidMount = componentDidMount.bind(this);
   componentWillUnmount(): void {
-    this.ref.current?.getSelfElement()?.removeEventListener('dblclick', (e) => {
+    this.rndRef.current?.getSelfElement()?.removeEventListener('dblclick', (e) => {
       e.preventDefault();
-      this.setState({ ...this.stateDefault });
+      this.setState({ width: this.defaults.width! as CSSSize | number, height: this.defaults.height! as CSSSize | number });
     });
+  }
+  setMin = (element: React.RefObject<HTMLDivElement>) => {
+    if (!element.current) return;
+    this.minSize = { width: element.current.offsetWidth, height: element.current.offsetHeight };
   }
   render() {
-    this.parent = this.props.parent;
 
-    const parent = {
-      width: this.parent.width,
-      height: this.parent.height,
-    };
-    this.stateDefault = {
-      width: parent.width * 0.55,
-      height: parent.height * 0.55,
-      x: (parent.width - (parent.width * 0.55)) / 2,
-      y: (parent.height - (parent.height * 0.55)) / 2,
-    } as const;
-    if (this.state.width === 0 && this.state.height === 0 && this.state.x === 0 && this.state.y === 0) {
-      this.setState({ ...this.stateDefault });
+    const defaults = {
+      width: this.defaults.width,
+      height: this.defaults.height,
+      x: this.defaults.x,
+      y: this.defaults.y
     }
-    const handleDragResize = (e: DraggableEvent, d: DraggableData) => {
-      const targetWidth = parent.width * 0.225; // Minimum width when fully left
-      const targetHeight = parent.height * 0.225; // Minimum height when fully up
-      const startLeft = parent.width * 0.225; // Starting point for adjustment
-      const maxLeft = parent.width * 0.375;
-      const maxTop = parent.height * 0.375;
-      const maxRight = parent.width * 0.625;
-      const maxBottom = parent.height * 0.625;
-      const startTop = parent.height * 0.225; // Starting point for adjustment
-      const startRight = parent.width * 0.775; // Starting point for adjustment
-      const startBottom = parent.height * 0.775; // Starting point for adjustment
-      const original = this.stateDefault;
-      const width = parseFloat(this.state.width.toString());
-      const height = parseFloat(this.state.height.toString());
-      const left = d.x;
-      const top = d.y;
-      const right = width + d.x;
-      const bottom = height + d.y;
-      const maxWidth = parent.width;
-      const maxHeight = parent.height;
-      const distanceLeft = Math.min(Math.max(d.x / startLeft, 0), 1);
-      const distanceTop = Math.min(Math.max(d.y / startTop, 0), 1);
-      const distanceRight = Math.min(Math.max((width + d.x) / startRight, 0), 1);
-      const distanceBottom = Math.min(Math.max((height + d.y) / startBottom, 0), 1);
-      let newHeight = height;
-      let newWidth = width;
-      console.log('height', newHeight)
-      console.log('width', newWidth)
-      let holder = 0;
-      const direction = (d: DraggableData) =>
-        d.deltaX <= 0
-          ? 'left'
-          : d.deltaX > 0
-            ? 'right'
-            : d.deltaY <= 0
-              ? 'top'
-              : d.deltaY > 0
-                ? 'bottom'
-                : 'none';
-      let newX = d.x;
-      let newY = d.x;
-      // Case when moving left and hitting the edge or already adjusting width
-      // if (d.deltaX < 0 && (d.x === 0 || this.state.adjustingWidth)) {
-      //   // Only adjust width if we're not already smaller than the target width
-      //   if (width > parent.width * 0.55) {
-      //     newWidth += d.deltaX; // Decrease width as we're moving left
-      //     this.state.adjustingWidth = true;
-      //   }
-      // } else if (d.deltaX > 0 && (this.state.adjustingWidth || d.x === 0)) {
-      //   // When moving right from the edge or if we need to adjust the width back
-      //   if (width < original.width) {
-      //     newWidth = Math.min(width + d.deltaX, original.width); // Increase width, but do not exceed initial width
-      //   } else {
-      //     // Once width is back to initial or if it's already there, move the position instead
-      //     d.x += d.deltaX;
-      //     this.state.adjustingWidth = width <= parent.width * 0.55; // Keep adjusting if width is still under threshold
-      //   }
-      // } else {
-      //   // Normal movement, not at an edge and not adjusting width
-      //   d.x += d.deltaX;
-      // }
-
-      // // Correct negative width just in case
-      // if (width < parent.width * 0.1) {
-      //   newWidth = parent.width * 0.1;
-      // }
-
-      // // Ensure d.x does not become negative
-      // if (d.x < 0) {
-      //   d.x = 0;
-      // }
-      // if (direction(d) === 'left') {
-      //   if (left > 0 && left <= startLeft && width >= targetWidth) {
-      //     newWidth = (original.width - targetWidth) * distanceLeft + targetWidth;
-      //   } else if (right <= maxWidth && right >= startRight && width <= original.width) {
-      //     newWidth = targetWidth + (original.width - targetWidth) * (1 - distanceRight);
-      //   }
-      // }
-      // if (direction(d) === 'right') {
-      //   if (left >= 0 && left <= startLeft && width >= targetWidth) {
-      //     newWidth = targetWidth + (original.width - targetWidth) * (1 - distanceLeft);
-      //   } else if (right <= maxWidth && right >= startRight && width >= targetWidth) {
-      //     newWidth = (original.width - targetWidth) * distanceRight + targetWidth;
-      //   }
-      // }
-      // if (direction(d) === 'top') {
-      //   if (top >= 0 && top <= startTop && height >= targetHeight) {
-      //     newHeight = (original.height - targetHeight) * distanceTop + targetHeight;
-      //   } else if (bottom <= maxHeight && bottom >= startBottom && height <= original.height) {
-      //     newHeight = targetHeight + (original.height - targetHeight) * (1 - distanceBottom);
-      //   }
-      // }
-      // if (direction(d) === 'bottom') {
-      //   if (top >= 0 && top <= startTop && height >= original.height) {
-      //     newHeight = targetHeight + (original.height - targetHeight) * (1 - distanceTop);
-      //   } else if (bottom <= maxHeight && bottom >= startBottom && height >= targetHeight) {
-      //     newHeight = (original.height - targetHeight) * distanceBottom + targetHeight;
-      //   }
-      // }
-      // if (d.x <= startLeft && width >= 0) {
-      //   // Calculate the dynamic width for shrinking
-      //     /**
-      //      * @see Algebra - This is an explanation of the algebraic equation used to calculate the new width
-      //      * ---
-      //      * 1. 'w' = width = `100 x 0.55` ;
-      //      * 2. 't' = target = `100 x 0.1` ;
-      //      * 3. 'd' = distance = `x ÷ (100 x .225)`:
-      //      * 4. 'z' = resulting width = `((w - t) x p) + t` | `z + t = (w - t) x p` ;
-      //      * z = (w - t) x
-      //      */
-      //     newWidth = (original.width - targetWidth) * distanceLeft + targetWidth;
-      //     //newWidth = targetWidth + (original.width - targetWidth) * (1 - distance.left);
-      // } else if (width + d.x >= startRight && width >= 0) {
-      //   if (d.d.deltaX > 0) {
-      //     newWidth = (original.width - targetWidth) * distanceRight + targetWidth;
-      //   } else {
-      //     newWidth = targetWidth + (original.width - targetWidth) * (1 - distanceRight);
-
-      //   }
-      // }
-      // if (d.deltaY < 0 && d.y <= startTop && height >= 0) {
-      //   newHeight = (original.height - targetHeight) * distanceTop + targetHeight;
-      //   //newHeight = targetHeight + (original.height - targetHeight) * (1 - distance.top);
-      // } else if (height + d.y >= startBottom && height >= 0) {
-      //   if (d.deltaY > 0) {
-      //     newHeight = (original.height - targetHeight) * distanceBottom + targetHeight;
-      //   } else {
-      //     newHeight = targetHeight + (original.height - targetHeight) * (1 - distanceBottom);
-      //   }
-      // }
-      this.setState({ width: newWidth, height: newHeight, x: d.x, y: d.y });
-    }
-
-    const onResize: RndResizeCallback = (e, direction, ref, delta, position) => {
-      const newSize = {
-        width: ref.offsetWidth,
-        height: ref.offsetHeight,
-      };
-      const adjustedSize = this.getSize(newSize);
-      const newPosition = {
-        x: Math.min(parent.width - adjustedSize.width, position.x),
-        y: Math.min(parent.height - adjustedSize.height, position.y),
-      };
-      newPosition.x = Math.max(0, newPosition.x);
-      newPosition.y = Math.max(0, newPosition.y);
-      this.setState({
-        width: adjustedSize.width,
-        height: adjustedSize.height,
-        x: newPosition.x,
-        y: newPosition.y,
-      });
-    };
-    const onDragStop: RndDragCallback = (event: DraggableEvent, data: DraggableData) => {
-      if (event.target instanceof HTMLDivElement) {
-
-      }
-      this.setState({
-        ...this.snapToGrid({ x: data.x, y: data.y }),
-      });
-    }
-    const onDrag: RndDragCallback = (e, data) => {
-      let newWidth = parseFloat(this.state.width.toString());
-      let newHeight = parseFloat(this.state.height.toString());
-
-      // Right boundary
-      if (data.x + newWidth > parent.width) {
-        newWidth = parent.width - data.x;
-      }
-      // Left boundary
-      if (data.x < 0) {
-        newWidth += data.x; // Reduce width as it moves out of left boundary
-        data.x = 0; // Reset x to stick to the left boundary
-      }
-
-      // Bottom boundary
-      if (data.y + newHeight > parent.height) {
-        newHeight = parent.height - data.y;
-      }
-      // Top boundary
-      if (data.y < 0) {
-        newHeight += data.y; // Reduce height as it moves out of top boundary
-        data.y = 0; // Reset y to stick to the top boundary
-      }
-
-      // Update state to adjust size and position
-      this.setState({
-        width: newWidth,
-        height: newHeight,
-        x: data.x,
-        y: data.y,
-      });
-    };
-    const handleResizeStop: RndResizeCallback = (e, dir, elementRef, delta, position) => {
-      const { x, y } = position;
-
-      let newWidth = parseFloat(this.state.width as string);
-      let newHeight = parseFloat(this.state.height as string);
-      let height = newHeight;
-      let width = newWidth;
-      if ((this.state.x + width) > parent.width) {
-        newWidth = parent.width - x;
-      }
-      if ((this.state.y + height) > parent.height) {
-        newHeight = parent.height - y;
-      }
-      this.setState({
-        width: newWidth,
-        height: newHeight,
-      });
-    }
-
     console.log('state', this.state);
+    console.log('DEFAULTS:', this.defaults)
+    console.log('RND VALUES:', this.rndRef.current?.props)
     const getClosestSnapPoint: RndResizeCallback = (e, direction, ref, delta, position) => {
       this.setState({
-        ...this.snapToGrid(position),
+        ...this.adjustPosition(position),
         width: ref.offsetWidth,
         height: ref.offsetHeight,
       });
+    }
+    const enableResizing = {
+      bottom: !this.props.locked,
+      top: !this.props.locked,
+      left: !this.props.locked,
+      right: !this.props.locked,
+      bottomLeft: !this.props.locked,
+      bottomRight: !this.props.locked,
+      topLeft: !this.props.locked,
+      topRight: !this.props.locked,
     }
     return (
       <Rnd
-        ref={ this.ref }
+        id={this.props.id}
+        ref={ (ref: Rnd) => this.rnd = ref }
+        $defaultCss={ this.defaults.css! }
         className="prop-box"
         bounds=".resize-area"
-        dragGrid={ [parent.width / 48, parent.height / 48] }
-        resizeGrid={ [parent.width / 32, parent.height / 32] }
-        maxHeight={ parent.height }
-        maxWidth={ parent.width }
-        minHeight={ parent.height * 0.09 }
-        minWidth={ parent.width * 0.09 }
+        dragGrid={ [this.props.parent.size.width / 48, this.props.parent.size.height / 48] }
+        resizeGrid={ [this.props.parent.size.width / 32, this.props.parent.size.height / 32] }
+        //maxHeight={ '100%' }
+        //maxWidth={ '100%'}
+        minHeight={ 'auto' }
+        minWidth={ 'fit-content'}
         size={ { width: this.state.width, height: this.state.height } }
         position={ { x: this.state.x, y: this.state.y } }
-        resizeHandleClasses={
-          {
-            bottom: 's-handle',
-            left: 'w-handle',
-            right: 'e-handle',
-            top: 'n-handle',
-            bottomLeft: 'sw-handle',
-            bottomRight: 'se-handle',
-            topLeft: 'nw-handle',
-            topRight: 'ne-handle',
-          }
-        }
-        onMouseMove={ (e) => {
-
+        resizeHandleClasses={ handleClasses }
+        resizeHandleWrapperClass={ 'handle-wrapper' }
+        cancel={ '.locked' }
+        enableResizing={ enableResizing }
+        onResizeStart={ (e, dir, ref) => {
+          this.broadcastEvent();
+          const {height, width} = window.getComputedStyle(ref);
+          this.setState({ width: parseInt(width), height: parseInt(height) });
+          console.log('Mouse:', e)
+          this.setState({ currentX: e.screenX, currentY: e.screenY})
         }}
-        onResizeStop={ handleResizeStop }
-        onDragStop={ onDragStop }
-        onDragStart={ (e, d) => {
-          this.setState({ isDragging: true, x: d.x, y: d.y });
-        } }
-        onResize={ onResize }
-        // this.setState({
-        //   ...this.getSize({ width: ref.offsetWidth, height: ref.offsetHeight }),
-        //   ...this.getPosition({ x: ref.offsetLeft, y: ref.offsetTop }),
-        // })
-        //} }
-
-        default={
-          {
-            width: parent.width * 0.55,
-            height: parent.height * 0.55,
-            x: (parent.width - (parent.width * 0.55)) / 2,
-            y: (parent.height - (parent.height * 0.55)) / 2,
+        onResize={ (e, dir, ref, delta, position) => {
+          this.broadcastEvent();
+          console.log('event:', e, '\ndir:', dir, '\nref:', ref, '\ndelta:', delta, '\nposition:', position);
+          const computedStyle = window.getComputedStyle(ref);
+          let { width, height } = { width: parseInt(computedStyle.width), height: parseInt(computedStyle.height) };
+          console.log('height:', height, '\nwidth:', width)
+          const screenY = (e instanceof MouseEvent && this.state.currentY - e.screenY);
+          const screenX = (e instanceof MouseEvent && this.state.currentX - e.screenX);
+          if (typeof screenY !== 'number' || typeof screenX !== 'number') {
+            throw new Error(`Mouse Event not registered!`)
           }
-        }
+          const y = this.state.y - screenY;
+          const x = this.state.x - screenX;
+          if ((dir === 'bottom' || dir === 'top') && (e instanceof MouseEvent || e instanceof TouchEvent)) {
+            if (dir === 'top') {
+              this.setState({ height: height + screenY })
+            } else {
+              this.setState({height: height - screenY})
+            }
+          } else if ((dir === 'left' || dir === 'right') && (e instanceof MouseEvent || e instanceof TouchEvent)) {
+            if (dir === 'left') {
+              this.setState({ width: width + screenX })
+            } else {
+              this.setState({ width: width - screenX})
+            }
+          } else {
+            if (!(e instanceof MouseEvent) && !(e instanceof TouchEvent)) {
+              throw new Error('No Mouse or Touch event registered!')
+            }
+            if (dir === 'topLeft') {
+              this.setState({ height: height + screenY, width: width + screenX })
+            } else if (dir === 'bottomLeft') {
+              this.setState({ height: height - screenY, width: width + screenX })
+            } else if (dir === 'topRight') {
+              this.setState({ height: height + screenY, width: width - screenX })
+            } else {
+              this.setState({ height: height - screenY, width: width - screenX })
+            }
+          }
+          this.broadcastEvent();
+        }}
+        disableDragging={this.state.locked}
+        onResizeStop={ (e, dir, ref,) => {
+
+          this.broadcastEvent();
+        }}
+        onDragStop={ this.onDragStop }
+        //onResizeStart={ this.onResizeStart }
+        onDragStart={ this.onDragStart }
+        onDrag={ this.onDrag }
+        //onResize={ this.onResize }
+        default={ defaults }
+
         dragAxis='both'
       >
-        <ModuleConsumer/>
+        { this.props.children }
       </Rnd>
     );
   }

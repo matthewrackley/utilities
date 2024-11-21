@@ -9,7 +9,9 @@
     ], // Specify library files to be included in the compilation
     "typeRoots": [
       "./node_modules/@types",
-      "./src/types"
+      "./src/types",
+      "./src/modules/types",
+      "./src/react/types"
     ],
     "declaration": true, // Generate corresponding '.d.ts' file
     "outDir": "./dist", // Redirect output structure to the directory
@@ -30,10 +32,16 @@
     "noEmitOnError": false, // Skip emitting files if there are errors
     //"resolveJsonModule": true // Include modules imported with '.json' extension
     "paths": {
-      "@countries/*": [
-        "./src/modules/countries/*"
+      "@countries": [
+        "./src/modules/countries/countries.ts"
       ],
-      "@utilities/*": [
+      "@detailed": [
+        "./src/modules/detailed/detailed.tsx"
+      ],
+      "@util/*": [
+        "./src/utilities/*"
+      ],
+      "!U/*": [
         "./src/utilities/*"
       ],
       "@hooks/*": [
@@ -88,6 +96,12 @@
   ],
   "exclude": [
     "./node_modules", // Exclude the node_modules directory
-    "**/*.test.ts" // Exclude test files
+    "**/*.test.ts", // Exclude test files
+    "**/*.dep.tsx", // Exclude all deprecated files
+    "**/*.dep.ts",
+    "**/*.dep.js",
+    "**/*.dep.jsx",
+    "**/*.dep",
+    "./src/nodejs/**/*"
   ]
 }
