@@ -314,19 +314,76 @@ function onResizeStop(this: FileViewer, e: MouseEvent | TouchEvent, dir: Directi
     adjustingHeight: false,
     adjustingWidth: false
   });
+  this.broadcastEvent();
+}
+function onResizeStart(this: FileViewer, e: React.MouseEvent<HTMLElement, MouseEvent> | React.TouchEvent<HTMLElement>, dir: Direction, ref: HTMLElement) {
+  this.broadcastEvent();
+  const {height, width} = window.getComputedStyle(ref);
+  this.setState({ width: parseInt(width), height: parseInt(height) });
+  console.log('Mouse:', e)
+  this.setState({ currentX: e.screenX, currentY: e.screenY });
+  this.broadcastEvent();
 }
 function onResize(this: FileViewer, e: MouseEvent | TouchEvent, direction: Direction, ref: HTMLElement, delta: ResizableDelta, position: Position) {
   console.log('ref', ref)
   this.broadcastEvent();
   this.setState({ width: ref.offsetWidth, height: ref.offsetHeight, ...position })
+  this.broadcastEvent();
 };
+function rndResize(this: FileViewer, e: MouseEvent | TouchEvent, dir: Direction, ref: HTMLElement, delta: ResizableDelta, position: Position) {
+  this.broadcastEvent();
+  console.log('event:', e, '\ndir:', dir, '\nref:', ref, '\ndelta:', delta, '\nposition:', position);
+  const computedStyle = window.getComputedStyle(ref);
+  let { width, height } = { width: parseInt(computedStyle.width), height: parseInt(computedStyle.height) };
+  console.log('height:', height, '\nwidth:', width)
+  const screenY = (e instanceof MouseEvent && this.state.currentY - e.screenY);
+  const screenX = (e instanceof MouseEvent && this.state.currentX - e.screenX);
+  if (typeof screenY !== 'number' || typeof screenX !== 'number') {
+    throw new Error(`Mouse Event not registered!`)
+  }
+  const topY = height + screenY;
+  const bottomY = height - screenY;
+  const leftX = width + screenX;
+  const rightX = width - screenX;
+  const y = this.state.y - screenY;
+  const x = this.state.x - screenX;
+  if (!(e instanceof MouseEvent) && !(e instanceof TouchEvent)) {
+    throw new Error('No Mouse or Touch event registered!')
+  }
+  if (dir === 'bottom' || dir === 'top') {
+    if (dir === 'top') {
+      this.setState({ height: topY })
+    } else {
+      this.setState({ height: bottomY })
+    }
+  } else if (dir === 'left' || dir === 'right') {
+    if (dir === 'left') {
+      this.setState({ width: leftX })
+    } else {
+      this.setState({ width: rightX})
+    }
+  } else {
+    if (dir === 'topLeft') {
+      this.setState({ height: topY, width: leftX })
+    } else if (dir === 'bottomLeft') {
+      this.setState({ height: bottomY, width: leftX })
+    } else if (dir === 'topRight') {
+      this.setState({ height: topY, width: rightX })
+    } else {
+      this.setState({ height: bottomY, width: rightX })
+    }
+  }
+  this.broadcastEvent();
+}
 function onDragStop(this: FileViewer, event: DraggableEvent, data: DraggableData) {
   this.broadcastEvent();
   this.setState({ x: data.x, y: data.y, lastMouseY: data.lastY, lastMouseX: data.lastX, deltaX: data.deltaX, deltaY: data.deltaY, isDragging: false });
+  this.broadcastEvent();
 }
 function onDragStart(this: FileViewer, e: DraggableEvent, d: DraggableData) {
   this.broadcastEvent();
-  this.setState({ x: d.x, y: d.y, lastMouseX: d.x, lastMouseY: d.y, isDragging: true })
+  this.setState({ x: d.x, y: d.y, lastMouseX: d.x, lastMouseY: d.y, isDragging: true });
+  this.broadcastEvent();
 }
 function componentDidMount(this: FileViewer): void {
   this.broadcastEvent();
@@ -378,8 +435,8 @@ function componentDidMount(this: FileViewer): void {
     e.preventDefault();
     this.setState({ width: this.defaults.width! as CSSSize | number, height: this.defaults.height! as CSSSize | number });
   });
-  this.childRef.current
-
+  this.childRef.current;
+  this.broadcastEvent();
   /*{
     // if (this.position.x === 0 && deltaX < 0) {
     //   // If the element is shrinking on the right side
@@ -577,7 +634,8 @@ class FileViewer extends React.Component<FVProps, DraggableState> {
   get domRect() {
     return this.rndRef.current?.getSelfElement()?.getBoundingClientRect()!;
   }
-  onResize = onResize.bind(this);
+  onResizeStart = onResizeStart.bind(this);
+  onResize = rndResize.bind(this);
   onDragStop = onDragStop.bind(this);
   onDragStart = onDragStart.bind(this);
   // onResizeStart: RndResizeStartCallback = (e, dir, elementRef) => {
@@ -608,32 +666,32 @@ class FileViewer extends React.Component<FVProps, DraggableState> {
   }
   render() {
 
-    const defaults = {
-      width: this.defaults.width,
-      height: this.defaults.height,
-      x: this.defaults.x,
-      y: this.defaults.y
-    }
-    console.log('state', this.state);
-    console.log('DEFAULTS:', this.defaults)
-    console.log('RND VALUES:', this.rndRef.current?.props)
-    const getClosestSnapPoint: RndResizeCallback = (e, direction, ref, delta, position) => {
-      this.setState({
-        ...this.adjustPosition(position),
-        width: ref.offsetWidth,
-        height: ref.offsetHeight,
-      });
-    }
-    const enableResizing = {
-      bottom: !this.props.locked,
-      top: !this.props.locked,
-      left: !this.props.locked,
-      right: !this.props.locked,
-      bottomLeft: !this.props.locked,
-      bottomRight: !this.props.locked,
-      topLeft: !this.props.locked,
-      topRight: !this.props.locked,
-    }
+    // const defaults = {
+    //   width: this.defaults.width,
+    //   height: this.defaults.height,
+    //   x: this.defaults.x,
+    //   y: this.defaults.y
+    // }
+    // console.log('state', this.state);
+    // console.log('DEFAULTS:', this.defaults)
+    // console.log('RND VALUES:', this.rndRef.current?.props)
+    // const getClosestSnapPoint: RndResizeCallback = (e, direction, ref, delta, position) => {
+    //   this.setState({
+    //     ...this.adjustPosition(position),
+    //     width: ref.offsetWidth,
+    //     height: ref.offsetHeight,
+    //   });
+    // }
+    // const enableResizing = {
+    //   bottom: !this.props.locked,
+    //   top: !this.props.locked,
+    //   left: !this.props.locked,
+    //   right: !this.props.locked,
+    //   bottomLeft: !this.props.locked,
+    //   bottomRight: !this.props.locked,
+    //   topLeft: !this.props.locked,
+    //   topRight: !this.props.locked,
+    // }
     return (
       <Rnd
         id={this.props.id}
@@ -641,77 +699,28 @@ class FileViewer extends React.Component<FVProps, DraggableState> {
         $defaultCss={ this.defaults.css! }
         className="prop-box"
         bounds=".resize-area"
-        dragGrid={ [this.props.parent.size.width / 48, this.props.parent.size.height / 48] }
-        resizeGrid={ [this.props.parent.size.width / 32, this.props.parent.size.height / 32] }
-        //maxHeight={ '100%' }
-        //maxWidth={ '100%'}
-        minHeight={ 'auto' }
-        minWidth={ 'fit-content'}
-        size={ { width: this.state.width, height: this.state.height } }
-        position={ { x: this.state.x, y: this.state.y } }
+        // dragGrid={ [this.props.parent.size.width / 48, this.props.parent.size.height / 48] }
+        // resizeGrid={ [this.props.parent.size.width / 32, this.props.parent.size.height / 32] }
+        // //maxHeight={ '100%' }
+        // //maxWidth={ '100%'}
+        // minHeight={ 'auto' }
+        // minWidth={ 'fit-content'}
+        // size={ { width: this.state.width, height: this.state.height } }
+        // position={ { x: this.state.x, y: this.state.y } }
         resizeHandleClasses={ handleClasses }
         resizeHandleWrapperClass={ 'handle-wrapper' }
         cancel={ '.locked' }
-        enableResizing={ enableResizing }
-        onResizeStart={ (e, dir, ref) => {
-          this.broadcastEvent();
-          const {height, width} = window.getComputedStyle(ref);
-          this.setState({ width: parseInt(width), height: parseInt(height) });
-          console.log('Mouse:', e)
-          this.setState({ currentX: e.screenX, currentY: e.screenY})
-        }}
-        onResize={ (e, dir, ref, delta, position) => {
-          this.broadcastEvent();
-          console.log('event:', e, '\ndir:', dir, '\nref:', ref, '\ndelta:', delta, '\nposition:', position);
-          const computedStyle = window.getComputedStyle(ref);
-          let { width, height } = { width: parseInt(computedStyle.width), height: parseInt(computedStyle.height) };
-          console.log('height:', height, '\nwidth:', width)
-          const screenY = (e instanceof MouseEvent && this.state.currentY - e.screenY);
-          const screenX = (e instanceof MouseEvent && this.state.currentX - e.screenX);
-          if (typeof screenY !== 'number' || typeof screenX !== 'number') {
-            throw new Error(`Mouse Event not registered!`)
-          }
-          const y = this.state.y - screenY;
-          const x = this.state.x - screenX;
-          if ((dir === 'bottom' || dir === 'top') && (e instanceof MouseEvent || e instanceof TouchEvent)) {
-            if (dir === 'top') {
-              this.setState({ height: height + screenY })
-            } else {
-              this.setState({height: height - screenY})
-            }
-          } else if ((dir === 'left' || dir === 'right') && (e instanceof MouseEvent || e instanceof TouchEvent)) {
-            if (dir === 'left') {
-              this.setState({ width: width + screenX })
-            } else {
-              this.setState({ width: width - screenX})
-            }
-          } else {
-            if (!(e instanceof MouseEvent) && !(e instanceof TouchEvent)) {
-              throw new Error('No Mouse or Touch event registered!')
-            }
-            if (dir === 'topLeft') {
-              this.setState({ height: height + screenY, width: width + screenX })
-            } else if (dir === 'bottomLeft') {
-              this.setState({ height: height - screenY, width: width + screenX })
-            } else if (dir === 'topRight') {
-              this.setState({ height: height + screenY, width: width - screenX })
-            } else {
-              this.setState({ height: height - screenY, width: width - screenX })
-            }
-          }
-          this.broadcastEvent();
-        }}
-        disableDragging={this.state.locked}
-        onResizeStop={ (e, dir, ref,) => {
-
-          this.broadcastEvent();
-        }}
-        onDragStop={ this.onDragStop }
-        //onResizeStart={ this.onResizeStart }
-        onDragStart={ this.onDragStart }
-        onDrag={ this.onDrag }
-        //onResize={ this.onResize }
-        default={ defaults }
+        // enableResizing={ enableResizing }
+        // onResizeStart={ this.onResizeStart }
+        // onResize={ this.onResize }
+        // disableDragging={this.state.locked}
+        // onResizeStop={ (e, dir, ref,) => {
+        //   this.broadcastEvent();
+        // }}
+        // onDragStop={ this.onDragStop }
+        // onDragStart={ this.onDragStart }
+        // onDrag={ this.onDrag }
+        // default={ defaults }
 
         dragAxis='both'
       >

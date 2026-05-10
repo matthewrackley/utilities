@@ -35,6 +35,7 @@ import FileViewer from './fileViewer';
 import { ModuleConsumer, ModuleProps, Modules, useModuleContext } from '@context/moduleContext';
 import useComputedStyles from '@hooks/useComputedStyles';
 import { LDHandle } from '../components/util/ldHandle';
+import { Rnd } from 'react-rnd';
 
 function counter(startCount: number = 0): Counter {
   let count = startCount;
@@ -261,13 +262,12 @@ const DataHolder: React.FC<DataHolderProps> = (props) => {
   const childRef = React.useRef<HTMLDivElement>(null);
   const fvRef = React.useRef<FileViewer>(null);
   const ldRef = React.useRef<HTMLDivElement>(null);
+  const [dragging, setDragging] = useState(false);
   const [rndData, setRndData] = useState<ElementData>({ width: 0, height: 0, left: 0, right: 0, top: 0, bottom: 0, rect: {} as DOMRect });
   const [childData, setChildData] = useState<ElementData>({ id: uuid(), width: 0, height: 0, left: 0, right: 0, top: 0, bottom: 0, rect: {} as DOMRect });
   const [ldData, setLDData] = useState<LDData>({ id: uuid(), width: 0, height: 0, left: 0, right: 0, top: 0, bottom: 0, transform: '0px' });
   const [locked, handleLock] = useLock(false);
-  useEffect(() => {
-    // Function to measure the computed width and height of the grid item
-    const measureSize = () => {
+  const measureSize = () => {
       let rndEl = {} as HTMLDivElement | null;
       let data = {} as LDData;
       if (fvRef.current && (rndEl = fvRef.current.rndElement)) {
@@ -279,10 +279,11 @@ const DataHolder: React.FC<DataHolderProps> = (props) => {
           ldRef.current.id = ldData.id;
           data.id = ldData.id;
           data.height = ldRect.height || parseFloat(ldComputedStyle.getPropertyValue('height'));
-          data.bottom = rndData.rect.top;
-          data.top = rndData.rect.top + data.height + 3;
-          data.left = rndData.rect.left;
-          data.right = rndData.rect.right;
+          const { rect: rndRect, ...rndSize } = getBaseData(rndEl);
+          data.bottom = rndRect.bottom;
+          data.top = rndRect.top + data.height + 3;
+          data.left = rndRect.left;
+          data.right = rndRect.right;
           data.transform = `${-data.height}px`;
           console.log('LD RECT:\n', ldRect);
           if (eHandle && eHandle instanceof HTMLDivElement) {
@@ -301,6 +302,12 @@ const DataHolder: React.FC<DataHolderProps> = (props) => {
         console.log('Child Data:\n', childData)
       }
     }
+  useEffect(() => {
+
+    // Function to measure the computed width and height of the grid item
+    window.addEventListener('mousemove', measureSize);
+    window.addEventListener('mouseup', measureSize);
+    window.addEventListener('mousedown', measureSize);
     // Call the measureSize function after the component has been rendered
     measureSize();
     // You can also listen for window resize events to update the values if needed
@@ -308,6 +315,9 @@ const DataHolder: React.FC<DataHolderProps> = (props) => {
     ldRef.current?.addEventListener('onResize', measureSize);
     // Clean up the event listener when the component unmounts
     return () => {
+      window.removeEventListener('mousemove', measureSize);
+      window.removeEventListener('mouseup', measureSize);
+      window.removeEventListener('mousedown', measureSize);
       fvRef.current?.rndElement?.removeEventListener('onResize', measureSize)
       ldRef.current?.removeEventListener('onResize', measureSize);
     };
@@ -409,7 +419,7 @@ export const ResizeArea: React.FC<SectionProps> = (props) => {
       >
       {fileViewers.map(fv => (
         <DataHolder component={ fv.component } id={fv.id} onRemove={handleRemove} parentData={parentData} />
-      ))}
+      )) }
         {/* <FileViewer parent={ parentData } childRef={ childRef } ref={ fvRef } maxSize={ 'fill-parent' } minSize={ 'fit-content' } locked={ locked }>
           <LDHandle
             className={ `ld-handle${locked ? ' locked' : ''}` }
@@ -429,3 +439,4 @@ export const ResizeArea: React.FC<SectionProps> = (props) => {
 };
 
 export default ResizeArea;
+document.querySelector('img')?.srcset.rep

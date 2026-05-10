@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta name="RATING" content="RTA-5042-1996-1400-1577-RTA" />
+    <meta viewport="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <title>Web-Dev-Utilities</title>
+    <style>
+      body {
+        height: 100vh;
+        width: 100vw;
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+        align-content: center;
+        align-self: center;
+      }
+      #root {
+        height: 100vh;
+        width: 100vw;
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+        align-content: center;
+        align-self: center;
+      }
+      #regions {
+        border: 2px solid #000;
+        height: 20px;
+        width: 50px;
+        background-color: #ccc;
+      }
+
+    </style>
+  </head>
+
+  <body>
+    <div id="root">
+      <div>
+      <label for="regions">Choose a region</label>
+      <select id="regions" name="regions" onchange="handleSelectChange(event)">
+        <option class="region-option" value="AC" id="AC">AC</option>
+        <option class="region-option" value="AD" id="AD">AD</option>
+        <option class="region-option" value="AE" id="AE">AE</option>
+        <option class="region-option" value="AF" id="AF">AF</option>
+        <option class="region-option" value="AG" id="AG">AG</option>
+        <option class="region-option" value="AI" id="AI">AI</option>
+        <option class="region-option" value="AL" id="AL">AL</option>
+        <option class="region-option" value="AM" id="AM">AM</option>
+        <option class="region-option" value="AO" id="AO">AO</option>
+        <option class="region-option" value="AQ" id="AQ">AQ</option>
+        <option class="region-option" value="AR" id="AR">AR</option>
+        <option class="region-option" value="AS" id="AS">AS</option>
+        <option class="region-option" value="AT" id="AT">AT</option>
+        <option class="region-option" value="AU" id="AU">AU</option>
+        <option class="region-option" value="AW" id="AW">AW</option>
+        <option class="region-option" value="AX" id="AX">AX</option>
+        <option class="region-option" value="AZ" id="AZ">AZ</option>
+        <option class="region-option" value="BA" id="BA">BA</option>
+        <option class="region-option" value="BB" id="BB">BB</option>
+        <option class="region-option" value="BD" id="BD">BD</option>
+        <option class="region-option" value="BE" id="BE">BE</option>
+        <option class="region-option" value="BF" id="BF">BF</option>
+        <option class="region-option" value="BG" id="BG">BG</option>
+        <option class="region-option" value="BH" id="BH">BH</option>
+        <option class="region-option" value="BI" id="BI">BI</option>
+        <option class="region-option" value="BJ" id="BJ">BJ</option>
+        <option class="region-option" value="BL" id="BL">BL</option>
+        <option class="region-option" value="BM" id="BM">BM</option>
+        <option class="region-option" value="BN" id="BN">BN</option>
+        <option class="region-option" value="BO" id="BO">BO</option>
+        <option class="region-option" value="BQ" id="BQ">BQ</option>
+        <option class="region-option" value="BR" id="BR">BR</option>
+        <option class="region-option" value="BS" id="BS">BS</option>
+        <option class="region-option" value="BT" id="BT">BT</option>
+        <option class="region-option" value="BV" id="BV">BV</option>
+        <option class="region-option" value="BW" id="BW">BW</option>
+        <option class="region-option" value="BY" id="BY">BY</option>
+        <option class="region-option" value="BZ" id="BZ">BZ</option>
+        <option class="region-option" value="CA" id="CA">CA</option>
+        <option class="region-option" value="CC" id="CC">CC</option>
+        <option class="region-option" value="CD" id="CD">CD</option>
+        <option class="region-option" value="CF" id="CF">CF</option>
+        <option class="region-option" value="CG" id="CG">CG</option>
+        <option class="region-option" value="CI" id="CI">CI</option>
+        <option class="region-option" value="CK" id="CK">CK</option>
+        <option class="region-option" value="CL" id="CL">CL</option>
+        <option class="region-option" value="CM" id="CM">CM</option>
+        <option class="region-option" value="CN" id="CN">CN</option>
+        <option class="region-option" value="CO" id="CO">CO</option>
+        <option class="region-option" value="CR" id="CR">CR</option>
+        <option class="region-option" value="CU" id="CU">CU</option>
+        <option class="region-option" value="CV" id="CV">CV</option>
+        <option class="region-option" value="CW" id="CW">CW</option>
+        <option class="region-option" value="CX" id="CX">CX</option>
+        <option class="region-option" value="CY" id="CY">CY</option>
+        <option class="region-option" value="CZ" id="CZ">CZ</option>
+        <option class="region-option" value="DE" id="DE">DE</option>
+        <option class="region-option" value="DJ" id="DJ">DJ</option>
+        <option class="region-option" value="DK" id="DK">DK</option>
+        <option class="region-option" value="DM" id="DM">DM</option>
+        <option class="region-option" value="DO" id="DO">DO</option>
+        <option class="region-option" value="DZ" id="DZ">DZ</option>
+        <option class="region-option" value="EC" id="EC">EC</option>
+        <option class="region-option" value="EE" id="EE">EE</option>
+        <option class="region-option" value="EG" id="EG">EG</option>
+        <option class="region-option" value="EH" id="EH">EH</option>
+        <option class="region-option" value="ER" id="ER">ER</option>
+        <option class="region-option" value="ET" id="ET">ET</option>
+        <option class="region-option" value="FI" id="FI">FI</option>
+        <option class="region-option" value="FJ" id="FJ">FJ</option>
+        <option class="region-option" value="FK" id="FK">FK</option>
+        <option class="region-option" value="FM" id="FM">FM</option>
+        <option class="region-option" value="FO" id="FO">FO</option>
+        <option class="region-option" value="FR" id="FR">FR</option>
+        <option class="region-option" value="GA" id="GA">GA</option>
+        <option class="region-option" value="GB" id="GB">GB</option>
+        <option class="region-option" value="GD" id="GD">GD</option>
+        <option class="region-option" value="GE" id="GE">GE</option>
+        <option class="region-option" value="GF" id="GF">GF</option>
+        <option class="region-option" value="GG" id="GG">GG</option>
+        <option class="region-option" value="GH" id="GH">GH</option>
+        <option class="region-option" value="GI" id="GI">GI</option>
+        <option class="region-option" value="GL" id="GL">GL</option>
+        <option class="region-option" value="GM" id="GM">GM</option>
+        <option class="region-option" value="GN" id="GN">GN</option>
+        <option class="region-option" value="GP" id="GP">GP</option>
+        <option class="region-option" value="GQ" id="GQ">GQ</option>
+        <option class="region-option" value="GR" id="GR">GR</option>
+        <option class="region-option" value="GS" id="GS">GS</option>
+        <option class="region-option" value="GT" id="GT">GT</option>
+        <option class="region-option" value="GU" id="GU">GU</option>
+        <option class="region-option" value="GW" id="GW">GW</option>
+        <option class="region-option" value="GY" id="GY">GY</option>
+        <option class="region-option" value="HK" id="HK">HK</option>
+        <option class="region-option" value="HM" id="HM">HM</option>
+        <option class="region-option" value="HN" id="HN">HN</option>
+        <option class="region-option" value="HR" id="HR">HR</option>
+        <option class="region-option" value="HT" id="HT">HT</option>
+        <option class="region-option" value="HU" id="HU">HU</option>
+        <option class="region-option" value="ID" id="ID">ID</option>
+        <option class="region-option" value="IE" id="IE">IE</option>
+        <option class="region-option" value="IL" id="IL">IL</option>
+        <option class="region-option" value="IM" id="IM">IM</option>
+        <option class="region-option" value="IN" id="IN">IN</option>
+        <option class="region-option" value="IO" id="IO">IO</option>
+        <option class="region-option" value="IQ" id="IQ">IQ</option>
+        <option class="region-option" value="IR" id="IR">IR</option>
+        <option class="region-option" value="IS" id="IS">IS</option>
+        <option class="region-option" value="IT" id="IT">IT</option>
+        <option class="region-option" value="JE" id="JE">JE</option>
+        <option class="region-option" value="JM" id="JM">JM</option>
+        <option class="region-option" value="JO" id="JO">JO</option>
+        <option class="region-option" value="JP" id="JP">JP</option>
+        <option class="region-option" value="KE" id="KE">KE</option>
+        <option class="region-option" value="KG" id="KG">KG</option>
+        <option class="region-option" value="KH" id="KH">KH</option>
+        <option class="region-option" value="KI" id="KI">KI</option>
+        <option class="region-option" value="KM" id="KM">KM</option>
+        <option class="region-option" value="KN" id="KN">KN</option>
+        <option class="region-option" value="KP" id="KP">KP</option>
+        <option class="region-option" value="KW" id="KW">KW</option>
+        <option class="region-option" value="KY" id="KY">KY</option>
+        <option class="region-option" value="KZ" id="KZ">KZ</option>
+        <option class="region-option" value="LA" id="LA">LA</option>
+        <option class="region-option" value="LB" id="LB">LB</option>
+        <option class="region-option" value="LC" id="LC">LC</option>
+        <option class="region-option" value="LI" id="LI">LI</option>
+        <option class="region-option" value="LR" id="LR">LR</option>
+        <option class="region-option" value="LS" id="LS">LS</option>
+        <option class="region-option" value="LT" id="LT">LT</option>
+        <option class="region-option" value="LU" id="LU">LU</option>
+        <option class="region-option" value="LV" id="LV">LV</option>
+        <option class="region-option" value="LY" id="LY">LY</option>
+        <option class="region-option" value="MA" id="MA">MA</option>
+        <option class="region-option" value="MC" id="MC">MC</option>
+        <option class="region-option" value="MD" id="MD">MD</option>
+        <option class="region-option" value="ME" id="ME">ME</option>
+        <option class="region-option" value="MF" id="MF">MF</option>
+        <option class="region-option" value="MG" id="MG">MG</option>
+        <option class="region-option" value="MH" id="MH">MH</option>
+        <option class="region-option" value="MK" id="MK">MK</option>
+        <option class="region-option" value="ML" id="ML">ML</option>
+        <option class="region-option" value="MM" id="MM">MM</option>
+        <option class="region-option" value="MN" id="MN">MN</option>
+        <option class="region-option" value="MO" id="MO">MO</option>
+        <option class="region-option" value="MP" id="MP">MP</option>
+        <option class="region-option" value="MQ" id="MQ">MQ</option>
+        <option class="region-option" value="MR" id="MR">MR</option>
+        <option class="region-option" value="MS" id="MS">MS</option>
+        <option class="region-option" value="MT" id="MT">MT</option>
+        <option class="region-option" value="MU" id="MU">MU</option>
+        <option class="region-option" value="MV" id="MV">MV</option>
+        <option class="region-option" value="MW" id="MW">MW</option>
+        <option class="region-option" value="MX" id="MX">MX</option>
+        <option class="region-option" value="MY" id="MY">MY</option>
+        <option class="region-option" value="MZ" id="MZ">MZ</option>
+        <option class="region-option" value="NA" id="NA">NA</option>
+        <option class="region-option" value="NC" id="NC">NC</option>
+        <option class="region-option" value="NE" id="NE">NE</option>
+        <option class="region-option" value="NF" id="NF">NF</option>
+        <option class="region-option" value="NG" id="NG">NG</option>
+        <option class="region-option" value="NI" id="NI">NI</option>
+        <option class="region-option" value="NL" id="NL">NL</option>
+        <option class="region-option" value="NO" id="NO">NO</option>
+        <option class="region-option" value="NP" id="NP">NP</option>
+        <option class="region-option" value="NR" id="NR">NR</option>
+        <option class="region-option" value="NU" id="NU">NU</option>
+        <option class="region-option" value="NZ" id="NZ">NZ</option>
+        <option class="region-option" value="OM" id="OM">OM</option>
+        <option class="region-option" value="PA" id="PA">PA</option>
+        <option class="region-option" value="PE" id="PE">PE</option>
+        <option class="region-option" value="PF" id="PF">PF</option>
+        <option class="region-option" value="PG" id="PG">PG</option>
+        <option class="region-option" value="PH" id="PH">PH</option>
+        <option class="region-option" value="PK" id="PK">PK</option>
+        <option class="region-option" value="PL" id="PL">PL</option>
+        <option class="region-option" value="PM" id="PM">PM</option>
+        <option class="region-option" value="PN" id="PN">PN</option>
+        <option class="region-option" value="PR" id="PR">PR</option>
+        <option class="region-option" value="PS" id="PS">PS</option>
+        <option class="region-option" value="PT" id="PT">PT</option>
+        <option class="region-option" value="PW" id="PW">PW</option>
+        <option class="region-option" value="PY" id="PY">PY</option>
+        <option class="region-option" value="QA" id="QA">QA</option>
+        <option class="region-option" value="RE" id="RE">RE</option>
+        <option class="region-option" value="RO" id="RO">RO</option>
+        <option class="region-option" value="RS" id="RS">RS</option>
+        <option class="region-option" value="RU" id="RU">RU</option>
+        <option class="region-option" value="RW" id="RW">RW</option>
+        <option class="region-option" value="SA" id="SA">SA</option>
+        <option class="region-option" value="SB" id="SB">SB</option>
+        <option class="region-option" value="SC" id="SC">SC</option>
+        <option class="region-option" value="SG" id="SG">SG</option>
+        <option class="region-option" value="SI" id="SI">SI</option>
+        <option class="region-option" value="SK" id="SK">SK</option>
+        <option class="region-option" value="SL" id="SL">SL</option>
+        <option class="region-option" value="SM" id="SM">SM</option>
+        <option class="region-option" value="SN" id="SN">SN</option>
+        <option class="region-option" value="SO" id="SO">SO</option>
+        <option class="region-option" value="ST" id="ST">ST</option>
+        <option class="region-option" value="SV" id="SV">SV</option>
+        <option class="region-option" value="SX" id="SX">SX</option>
+        <option class="region-option" value="TC" id="TC">TC</option>
+        <option class="region-option" value="TD" id="TD">TD</option>
+        <option class="region-option" value="TF" id="TF">TF</option>
+        <option class="region-option" value="TG" id="TG">TG</option>
+        <option class="region-option" value="TH" id="TH">TH</option>
+        <option class="region-option" value="TK" id="TK">TK</option>
+        <option class="region-option" value="TL" id="TL">TL</option>
+        <option class="region-option" value="TM" id="TM">TM</option>
+        <option class="region-option" value="TN" id="TN">TN</option>
+        <option class="region-option" value="TO" id="TO">TO</option>
+        <option class="region-option" value="TR" id="TR">TR</option>
+        <option class="region-option" value="TT" id="TT">TT</option>
+        <option class="region-option" value="TV" id="TV">TV</option>
+        <option class="region-option" value="UA" id="UA">UA</option>
+        <option class="region-option" value="UG" id="UG">UG</option>
+        <option class="region-option" value="UM" id="UM">UM</option>
+        <option class="region-option" value="US" id="US">US</option>
+        <option class="region-option" value="UY" id="UY">UY</option>
+        <option class="region-option" value="UZ" id="UZ">UZ</option>
+        <option class="region-option" value="VA" id="VA">VA</option>
+        <option class="region-option" value="VC" id="VC">VC</option>
+        <option class="region-option" value="VE" id="VE">VE</option>
+        <option class="region-option" value="VG" id="VG">VG</option>
+        <option class="region-option" value="VI" id="VI">VI</option>
+        <option class="region-option" value="VN" id="VN">VN</option>
+        <option class="region-option" value="VU" id="VU">VU</option>
+        <option class="region-option" value="WF" id="WF">WF</option>
+        <option class="region-option" value="WS" id="WS">WS</option>
+        <option class="region-option" value="XK" id="XK">XK</option>
+        <option class="region-option" value="YE" id="YE">YE</option>
+        <option class="region-option" value="YT" id="YT">YT</option>
+        <option class="region-option" value="ZA" id="ZA">ZA</option>
+        <option class="region-option" value="ZM" id="ZM">ZM</option>
+        <option class="region-option" value="ZW" id="ZW">ZW</option>
+      </select>
+      <input type="tel" id="formattable-number" onchange="formatNumber(event)"></input>
+      </div>
+      <script src="script.js"/>
+    </div>
+  </body>
+
+</html>
